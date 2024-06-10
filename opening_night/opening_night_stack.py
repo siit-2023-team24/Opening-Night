@@ -1,7 +1,5 @@
 from aws_cdk import (
-    # Duration,
     Stack,
-    # aws_sqs as sqs,
     aws_lambda as _lambda,
     aws_apigateway as apigateway,
     aws_dynamodb as dynamodb,
@@ -16,27 +14,16 @@ from aws_cdk import (
 from aws_cdk.aws_lambda_python_alpha import PythonLayerVersion
 from constructs import Construct
 
-import lambdas.uploadFilm
-import lambdas.uploadFilm.upload_film
-
 class OpeningNightStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # The code that defines your stack goes here
-
-        # example resource
-        # queue = sqs.Queue(
-        #     self, "OpeningNightQueue",
-        #     visibility_timeout=Duration.seconds(300),
-        # )
-
         opening_nights_table= dynamodb.Table(
             self, "Opening-Night-Table",
             table_name="opening-night-table",
             partition_key=dynamodb.Attribute(
-                name="name",
+                name="fileName",
                 type=dynamodb.AttributeType.STRING
             ),
             read_capacity=1,
@@ -45,16 +32,10 @@ class OpeningNightStack(Stack):
 
         opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
                             bucket_name="opening-night-bucket",
-                            removal_policy=RemovalPolicy.DESTROY,  # Remove films_bucket on stack deletion
-                            auto_delete_objects=True,  # Automatically delete objects on stack deletion
+                            removal_policy=RemovalPolicy.DESTROY,
+                            auto_delete_objects=True,
                             block_public_access = s3.BlockPublicAccess.BLOCK_ALL
-                            )
-        
-        
-        # film = films_api.add_resource("{film_id}")
-        # film.add_method("GET")                
-
-        # IAM Role for Lambda Functions
+                            )           
         lambda_role = iam.Role(
             self, "LambdaRole",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
@@ -82,8 +63,6 @@ class OpeningNightStack(Stack):
                 resources=[opening_nights_table.table_arn, opening_nights_bucket.bucket_arn + "/*"]
             )
         )
-
-        # Function Definitions
         def create_lambda_function(id, handler, include_dir, method, layers):
             function = _lambda.Function(
                 self, id,
@@ -112,9 +91,8 @@ class OpeningNightStack(Stack):
                     allowed_origins=["*"]
                 )
             )
-            
+
             return function
-        
         
         util_layer = PythonLayerVersion(
             self, 'UtilLambdaLayer',
@@ -130,21 +108,22 @@ class OpeningNightStack(Stack):
             [util_layer]
         )
 
-        opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api")
+        download_film_lambda = create_lambda_function(
+            "downloadFilm",
+            "download_film.get_one",
+            "lambdas/downloadFilm",
+            "GET",
+            []
+        )
 
+        opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api")
         opening_nights_api.root.add_method("ANY")
 
         films = opening_nights_api.root.add_resource("films")
-
         upload_film_integration = apigateway.LambdaIntegration(upload_film_lambda)
         films.add_method("POST", upload_film_integration)
 
+        film =  opening_nights_api.root.add_resource("{name}")
+        download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
+        film.add_method("GET", download_film_integration)
 
-        # create_lambda_function(
-        #     "downloadFilm",
-        #     "download_film.get_one",
-        #     "lambdas/downloadFilm",
-        #     "GET",
-        #     []
-        # )
-        

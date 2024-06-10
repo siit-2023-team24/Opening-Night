@@ -1,24 +1,20 @@
-import json
 import os
 import boto3
-
-# Extract environment variable
-table_name = os.environ['TABLE_NAME']
-dynamodb = boto3.resource('dynamodb')
-
+import base64
+s3_client = boto3.client('s3')
 def get_one(event, context):
-    # Extract data from request
-    path = event['rawPath'][1:]
-    # Get table instance connection
-    table = dynamodb.Table(table_name)
-    # Get all items from table
-    response = table.get_item(
-        Key={
-            'name': path
-        }
-    )
-    # Create response
-    body = {
-        'data': response['Item']
+    
+    bucket_name = os.environ['BUCKET_NAME']
+
+    path_parameters = event.get('pathParameters', {})
+    
+    name = path_parameters.get('name')
+
+    response = s3_client.get_object(Bucket=bucket_name, Key=name)
+    content = response['Body'].read()
+    encoded_content = base64.b64encode(content)
+    
+    return {
+        'statusCode': 200,
+        'body': encoded_content
     }
-    return { 'statusCode': 200, 'body': json.dumps(body, default=str) }
