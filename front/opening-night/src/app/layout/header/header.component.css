@@ -1,0 +1,21 @@
+header{
+    text-align: left;
+    width: 100%;
+    align-items: center;
+    display: flex;
+    box-sizing: border-box;
+    padding: 0 40px 20px 40px;
+    background-color: #F1F0EF;
+    border-bottom: 5px solid #EF6C33;
+    justify-content: flex-start;
+}
+
+.logo{
+    width: 100px;
+}
+
+.title{
+    margin-left: 50px;
+    font-size: 40px;
+    color: #0C4A60;
+}

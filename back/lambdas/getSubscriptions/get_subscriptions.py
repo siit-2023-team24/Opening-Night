@@ -4,7 +4,7 @@ import libs.utils as util
 
 dynamodb = boto3.resource('dynamodb')
 
-def update_subs(event, context):
+def get_subs(event, context):
     
     path_params = event.get('pathParametars', {})
     username = path_params.get('username')

@@ -1,0 +1,41 @@
+<div class="navbar">
+
+    <div class="transparent-button-wrapper">
+        <button class="tranparentBtn" [routerLink]="['/home']" mat-flat-button>Home</button>
+    </div>
+
+
+
+    <!-- <div *ngIf="role=='ROLE_ADMIN'" class="transparent-button-wrapper">
+        <button [routerLink]="['upload']" [queryParams]="{title: 'Upload'}" class="tranparentBtn" mat-flat-button >Upload</button>
+    </div>
+
+
+    <div class="transparent-button-wrapper">
+        <button [routerLink]="['search']" [queryParams]="{title: 'Search titles'}" class="tranparentBtn" mat-flat-button >Search titles</button>
+    </div> -->
+
+
+
+    <div *ngIf="role=='USER'" class="transparent-button-wrapper">
+        <button [routerLink]="['subs']" [queryParams]="{title: 'My subscriptions'}" class="tranparentBtn" mat-flat-button >My subscriptions</button>
+    </div>
+
+
+    <!-- <div *ngIf="username" class="transparent-button-wrapper">
+        <button [routerLink]="['profile']" [queryParams]="{title: 'My profile'}" class="tranparentBtn" mat-flat-button >Profile</button>
+    </div> -->
+
+    <!-- <div *ngIf="!username" class="transparent-button-wrapper">
+        <button [routerLink]="['register']" [queryParams]="{title: 'Registration'}" class="tranparentBtn" mat-flat-button >Register</button>
+    </div>
+    
+    <div *ngIf="!username" class="dark-orange-button-wrapper">
+        <button [routerLink]="['login']" [queryParams]="{title: 'Login'}" class="orangeBtn" mat-flat-button >Log in</button>
+    </div>
+
+    <div *ngIf="username" class="dark-orange-button-wrapper">
+        <button [routerLink]="['log out']" [queryParams]="{title: 'Logout'}" (click)="logout()" class="orangeBtn" mat-flat-button >Log out</button>
+    </div> -->
+
+</div>
