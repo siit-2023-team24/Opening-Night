@@ -5,6 +5,7 @@ import { SubscriptionDTO } from '../model/subscription';
 import { Genre } from 'src/app/shared/genre';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MessageResponse } from 'src/env/error-response';
+import { ActorsAndDirectorsDTO } from 'src/app/shared/actorsAndDirectors';
 
 
 @Component({
@@ -14,7 +15,7 @@ import { MessageResponse } from 'src/env/error-response';
 })
 export class SubscriptionsComponent implements OnInit {
 
-  subscription: SubscriptionDTO = {directors: ["sfj", 'dsfdsf'], actors: ['dsfdsf'], genres: ['comedy', 'action','romance']}
+  subscription: SubscriptionDTO = {directors: [], actors: [], genres: []}
 
   username = "";
 
@@ -48,6 +49,15 @@ export class SubscriptionsComponent implements OnInit {
       },
       error: () => console.error('Error getting subscriptions')
     });
+
+    this.service.getActorsAndDirectors().subscribe({
+      next: (data: ActorsAndDirectorsDTO) => {
+        this.directors = data.directors;
+        this.directors.sort()
+        this.actors = data.actors
+        this.actors.sort()
+      }
+    })
 
     this.genres = this.genres.filter(g => this.subscription.genres.indexOf(g) == -1);
 

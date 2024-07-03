@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from 'src/env/env';
 import { SubscriptionDTO } from './model/subscription';
 import { MessageResponse } from 'src/env/error-response';
+import { ActorsAndDirectorsDTO } from '../shared/actorsAndDirectors';
 
 @Injectable({
   providedIn: 'root'
@@ -18,5 +19,9 @@ export class SubsService {
 
   update(username: string, subs: SubscriptionDTO): Observable<MessageResponse> {
     return this.httpClient.post<MessageResponse>(environment.apiHost + '/subscriptions/' + username, subs);
+  }
+
+  getActorsAndDirectors(): Observable<ActorsAndDirectorsDTO> {
+    return this.httpClient.get<ActorsAndDirectorsDTO>(environment.apiHost + '/actors-and-directors')
   }
 }

@@ -71,7 +71,9 @@ class OpeningNightStack(Stack):
                     "s3:GetObjectAcl",
                     "s3:DeleteObject"
                 ],
-                resources=[opening_nights_table.table_arn, subs_table.table_arn, opening_nights_bucket.bucket_arn + "/*"]
+                resources=[opening_nights_table.table_arn, 
+                           subs_table.table_arn,
+                           opening_nights_bucket.bucket_arn + "/*"]
             )
         )
         def create_lambda_function(id, handler, include_dir, method, layers):
@@ -144,6 +146,14 @@ class OpeningNightStack(Stack):
             []
         )
 
+        get_actors_and_directors_lambda = create_lambda_function(
+            "getActorsAndDirectors",
+            "get_actors_and_directors.get_actors_and_directors",
+            "lambdas/getActorsAndDirectors",
+            "GET",
+            []
+        )
+
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
             default_cors_preflight_options={
                 "allow_origins": apigateway.Cors.ALL_ORIGINS,
@@ -171,3 +181,6 @@ class OpeningNightStack(Stack):
         get_subscriptions_integration = apigateway.LambdaIntegration(get_subscriptions_lambda)
         subs.add_method("GET", get_subscriptions_integration)
 
+        actors_and_directors = opening_nights_api.root.add_resource("actors-and-directors")
+        get_actors_and_directors_integration = apigateway.LambdaIntegration(get_actors_and_directors_lambda)
+        actors_and_directors.add_method("GET", get_actors_and_directors_integration)

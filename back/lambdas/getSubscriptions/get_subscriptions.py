@@ -24,7 +24,7 @@ def get_subs(event, context):
             body['genres'] = item['genres']
             status = 200
     except (KeyError):
-        print('key error')
+        print('username not found error (no item found)')
     
     return { 
         'statusCode': status, 
