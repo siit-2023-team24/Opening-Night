@@ -1,12 +1,12 @@
 import os
 import boto3
-import libs.utils as util
+import json
 
 dynamodb = boto3.resource('dynamodb')
 
 def get_subs(event, context):
     
-    path_params = event.get('pathParametars', {})
+    path_params = event.get('pathParameters', {})
     username = path_params.get('username')
     
 
@@ -14,14 +14,23 @@ def get_subs(event, context):
     table = dynamodb.Table(table_name)
     
     subs = table.get_item(Key={'username': username})
-    item = subs['Item']
     body = {'directors': [], 'actors': [], 'genres': []}
-    if item:
-        body['directors'] = item['directors']
-        body['actors'] = item['actors']
-        body['genres'] = item['genres']
-
-        return util.create_response(200, body)
+    status = 404
+    try:    
+        if subs and subs['Item']:
+            item = subs['Item']
+            body['directors'] = item['directors']
+            body['actors'] = item['actors']
+            body['genres'] = item['genres']
+            status = 200
+    except (KeyError):
+        print('key error')
     
-    return util.create_response(404, body)
+    return { 
+        'statusCode': status, 
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+        },
+        'body': json.dumps(body, default=str)
+        }
     

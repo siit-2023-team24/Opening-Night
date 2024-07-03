@@ -144,7 +144,13 @@ class OpeningNightStack(Stack):
             []
         )
 
-        opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api")
+        opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
+            default_cors_preflight_options={
+                "allow_origins": apigateway.Cors.ALL_ORIGINS,
+                "allow_methods": apigateway.Cors.ALL_METHODS,
+                "allow_headers": ["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key"],
+                "status_code": 200
+            })
         opening_nights_api.root.add_method("ANY")
 
         films = opening_nights_api.root.add_resource("films")
@@ -158,7 +164,8 @@ class OpeningNightStack(Stack):
         subs_resource = opening_nights_api.root.add_resource('subscriptions')
         subs = subs_resource.add_resource("{username}")
         
-        update_subscriptions_integration = apigateway.LambdaIntegration(update_subscriptions_lambda)
+        update_subscriptions_integration = apigateway.LambdaIntegration(update_subscriptions_lambda,
+                                                                        request_templates={'application/json': '{"statusCode": 200}'})
         subs.add_method("POST", update_subscriptions_integration)
 
         get_subscriptions_integration = apigateway.LambdaIntegration(get_subscriptions_lambda)

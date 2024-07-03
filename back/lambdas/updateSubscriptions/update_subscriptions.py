@@ -1,13 +1,12 @@
 import json
 import os
 import boto3
-import libs.utils as util
 
 dynamodb = boto3.resource('dynamodb')
 
 def update_subs(event, context):
 
-    path_params = event.get('pathParametars', {})
+    path_params = event.get('pathParameters', {})
     username = path_params.get('username')
     
     subs = json.loads(event['body'])
@@ -23,8 +22,15 @@ def update_subs(event, context):
         }
     )
 
-    return util.create_response(
-        200,
-        {'message': 'Successfully updated subscriptions.'} )
+    body = {'message': 'Successfully updated subscriptions.'}
+
+    return { 
+        'statusCode': 200, 
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+        },
+        'body': json.dumps(body, default=str)
+        }
+
     
 

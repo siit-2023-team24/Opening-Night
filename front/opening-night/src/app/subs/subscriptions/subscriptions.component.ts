@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { SubscriptionDTO } from '../model/subscription';
 import { Genre } from 'src/app/shared/genre';
 import { FormBuilder, FormGroup } from '@angular/forms';
+import { MessageResponse } from 'src/env/error-response';
 
 
 @Component({
@@ -41,12 +42,12 @@ export class SubscriptionsComponent implements OnInit {
     //TODO get username
     this.username = "test"
 
-    // this.service.get(this.username).subscribe({
-    //   next: (data: SubscriptionDTO) => {
-    //     this.subscription = data
-    //   },
-    //   error: () => console.error('Error getting subscriptions')
-    // });
+    this.service.get(this.username).subscribe({
+      next: (data: SubscriptionDTO) => {
+        this.subscription = data
+      },
+      error: () => console.error('Error getting subscriptions')
+    });
 
     this.genres = this.genres.filter(g => this.subscription.genres.indexOf(g) == -1);
 
@@ -133,10 +134,10 @@ export class SubscriptionsComponent implements OnInit {
     if (!this.username) return;
     console.log(this.subscription);
 
-    // this.service.update(this.username, this.subscription).subscribe({
-    //   next: (message => this.showSnackBar(message)),
-    //   error: (_ => this.showSnackBar("An error occured."))
-    //   });
+    this.service.update(this.username, this.subscription).subscribe({
+      next: ((message: MessageResponse) => this.showSnackBar(message.message)),
+      error: (_ => this.showSnackBar("An error occured."))
+      });
   }
 
   private showSnackBar(message: string): void {
