@@ -12,18 +12,15 @@ def rate(event, context):
 
     table_name = os.environ['RATINGS_TABLE_NAME']
     table = dynamodb.Table(table_name)
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now()
     
     try:
         table.put_item(
             Item = {
                 'filmId': body['filmId'],
-                'usernameTimestamp': body['username'] + timestamp,
                 'username': body['username'],
                 'timestamp': timestamp,
-                'stars': body['stars'],
-                'recommend': body['recommend'],
-                'vibe': body['vibe']
+                'stars': body['stars']
             }
         )
         status = 200

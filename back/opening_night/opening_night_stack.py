@@ -45,7 +45,7 @@ class OpeningNightStack(Stack):
             self, "Ratings-Table",
             table_name="ratings-table",
             partition_key=dynamodb.Attribute(name="filmId", type=dynamodb.AttributeType.STRING),
-            sort_key=dynamodb.Attribute(name="usernameTimestamp", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="username", type=dynamodb.AttributeType.STRING),
             read_capacity=1,
             write_capacity=1,
         )
