@@ -68,6 +68,7 @@ export class RatingsComponent implements OnInit {
       this.service.rate(dto).subscribe({
         next: (response: MessageResponse) => {
           console.log(response.message);
+          this.ngOnInit();
         },
         error: (error: MessageResponse) => {
           console.log(error.message);
