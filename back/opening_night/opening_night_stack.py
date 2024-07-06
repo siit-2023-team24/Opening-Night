@@ -81,6 +81,22 @@ class OpeningNightStack(Stack):
             write_capacity=1,
         )
 
+        ratings_table= dynamodb.Table(
+            self, "Ratings-Table",
+            table_name="ratings-table",
+            partition_key=dynamodb.Attribute(name="filmId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="username", type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1,
+        )
+
+        # ratings_table.add_global_secondary_index(
+        #     index_name='username-index',
+        #     partition_key=dynamodb.Attribute(name='username', type=dynamodb.AttributeType.STRING),
+        #     sort_key=dynamodb.Attribute(name='timestamp', type=dynamodb.AttributeType.STRING),
+        #     projection_type=dynamodb.ProjectionType.ALL
+        # )
+
         opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
             bucket_name="opening-night-bucket",
             removal_policy=RemovalPolicy.DESTROY,
@@ -117,11 +133,11 @@ class OpeningNightStack(Stack):
                 ],
                 resources=[opening_nights_table.table_arn,
                            subs_table.table_arn,
-                           opening_nights_bucket.bucket_arn + "/*",
+                           ratings_table.table_arn,
+                           opening_nights_bucket.bucket_arn + "/*"]
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
-
             )
         )
         #TODO razdvojiti prava
@@ -145,6 +161,7 @@ class OpeningNightStack(Stack):
                 environment={
                     'TABLE_NAME': opening_nights_table.table_name,
                     'SUBS_TABLE_NAME': subs_table.table_name,
+                    'RATINGS_TABLE_NAME': ratings_table.table_name,
                     'BUCKET_NAME': opening_nights_bucket.bucket_name
                 },
                 role=lambda_role
@@ -204,6 +221,23 @@ class OpeningNightStack(Stack):
             []
         )
 
+
+        get_ratings_for_film_lambda = create_lambda_function(
+            "getRatingForFilm",
+            "get_ratings_for_film.get_ratings_for_film",
+            "lambdas/getRatingsForFilm",
+            "GET",
+            []
+        )
+
+        rate_film_lambda = create_lambda_function(
+            "rateFilm",
+            "rate_film.rate",
+            "lambdas/rateFilm",
+            "POST",
+            []
+        )
+
         login_lambda = create_lambda_function(
             "login",
             "login.login",
@@ -252,6 +286,14 @@ class OpeningNightStack(Stack):
         actors_and_directors = opening_nights_api.root.add_resource("actors-and-directors")
         get_actors_and_directors_integration = apigateway.LambdaIntegration(get_actors_and_directors_lambda)
         actors_and_directors.add_method("GET", get_actors_and_directors_integration)
+
+        ratings = opening_nights_api.root.add_resource("ratings")
+        rate_film_integration = apigateway.LambdaIntegration(rate_film_lambda)
+        ratings.add_method("POST", rate_film_integration)
+
+        film_ratings = ratings.add_resource("{filmId}")
+        get_ratings_for_film_integration = apigateway.LambdaIntegration(get_ratings_for_film_lambda)
+        film_ratings.add_method("GET", get_ratings_for_film_integration)
         
         login = opening_nights_api.root.add_resource("login")
         login_integration = apigateway.LambdaIntegration(login_lambda)
@@ -260,4 +302,5 @@ class OpeningNightStack(Stack):
         register = opening_nights_api.root.add_resource("register")
         register_integration = apigateway.LambdaIntegration(register_lambda)
         register.add_method("POST", register_integration)
+
 

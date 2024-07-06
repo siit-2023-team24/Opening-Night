@@ -8,7 +8,6 @@ def get_subs(event, context):
     
     path_params = event.get('pathParameters', {})
     username = path_params.get('username')
-    
 
     table_name = os.environ['SUBS_TABLE_NAME']
     table = dynamodb.Table(table_name)

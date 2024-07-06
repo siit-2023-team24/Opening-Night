@@ -8,6 +8,7 @@ import { LayoutModule } from './layout/layout.module';
 import { MaterialModule } from './material/material.module';
 import { SubsModule } from './subs/subs.module';
 import { SharedModule } from './shared/shared.module';
+import { FilmModule } from './film/film.module';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { SharedModule } from './shared/shared.module';
     LayoutModule,
     MaterialModule,
     SubsModule,
-    SharedModule
+    SharedModule,
+    FilmModule
   ],
   providers: [],
   bootstrap: [AppComponent]
