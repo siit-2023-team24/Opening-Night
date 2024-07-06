@@ -70,6 +70,17 @@ class OpeningNightStack(Stack):
             write_capacity=1,
         )
 
+        subs_table= dynamodb.Table(
+            self, "Subscriptions-Table",
+            table_name="subscriptions-table",
+            partition_key=dynamodb.Attribute(
+                name="username",
+                type=dynamodb.AttributeType.STRING
+            ),
+            read_capacity=1,
+            write_capacity=1,
+        )
+
         opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
             bucket_name="opening-night-bucket",
             removal_policy=RemovalPolicy.DESTROY,
@@ -105,10 +116,12 @@ class OpeningNightStack(Stack):
                     "cognito-idp:ListUsers" # register
                 ],
                 resources=[opening_nights_table.table_arn,
+                           subs_table.table_arn,
                            opening_nights_bucket.bucket_arn + "/*",
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
+
             )
         )
         #TODO razdvojiti prava
@@ -131,6 +144,7 @@ class OpeningNightStack(Stack):
                 timeout=Duration.seconds(10),
                 environment={
                     'TABLE_NAME': opening_nights_table.table_name,
+                    'SUBS_TABLE_NAME': subs_table.table_name,
                     'BUCKET_NAME': opening_nights_bucket.bucket_name
                 },
                 role=lambda_role
@@ -166,6 +180,30 @@ class OpeningNightStack(Stack):
             []
         )
 
+        update_subscriptions_lambda = create_lambda_function(
+            "updateSubscriptions",
+            "update_subscriptions.update_subs",
+            "lambdas/updateSubscriptions",
+            "POST",
+            []
+          )  
+
+        get_subscriptions_lambda = create_lambda_function(
+            "getSubscriptions",
+            "get_subscriptions.get_subs",
+            "lambdas/getSubscriptions",
+            "GET",
+            []
+        )
+
+        get_actors_and_directors_lambda = create_lambda_function(
+            "getActorsAndDirectors",
+            "get_actors_and_directors.get_actors_and_directors",
+            "lambdas/getActorsAndDirectors",
+            "GET",
+            []
+        )
+
         login_lambda = create_lambda_function(
             "login",
             "login.login",
@@ -173,7 +211,7 @@ class OpeningNightStack(Stack):
             "POST",
             []
         )
-
+        
         register_lambda = create_lambda_function(
             "register",
             "register.register",
@@ -182,7 +220,14 @@ class OpeningNightStack(Stack):
             []
         )
 
-        opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api")
+        opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
+            default_cors_preflight_options={
+                "allow_origins": apigateway.Cors.ALL_ORIGINS,
+                "allow_methods": apigateway.Cors.ALL_METHODS,
+                "allow_headers": ["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key"],
+                "status_code": 200
+            })
+
         opening_nights_api.root.add_method("ANY")
 
         films = opening_nights_api.root.add_resource("films")
@@ -193,6 +238,21 @@ class OpeningNightStack(Stack):
         download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
         film.add_method("GET", download_film_integration)
 
+
+        subs_resource = opening_nights_api.root.add_resource('subscriptions')
+        subs = subs_resource.add_resource("{username}")
+        
+        update_subscriptions_integration = apigateway.LambdaIntegration(update_subscriptions_lambda,
+                                                                        request_templates={'application/json': '{"statusCode": 200}'})
+        subs.add_method("POST", update_subscriptions_integration)
+
+        get_subscriptions_integration = apigateway.LambdaIntegration(get_subscriptions_lambda)
+        subs.add_method("GET", get_subscriptions_integration)
+
+        actors_and_directors = opening_nights_api.root.add_resource("actors-and-directors")
+        get_actors_and_directors_integration = apigateway.LambdaIntegration(get_actors_and_directors_lambda)
+        actors_and_directors.add_method("GET", get_actors_and_directors_integration)
+        
         login = opening_nights_api.root.add_resource("login")
         login_integration = apigateway.LambdaIntegration(login_lambda)
         login.add_method("POST", login_integration)
@@ -200,3 +260,4 @@ class OpeningNightStack(Stack):
         register = opening_nights_api.root.add_resource("register")
         register_integration = apigateway.LambdaIntegration(register_lambda)
         register.add_method("POST", register_integration)
+

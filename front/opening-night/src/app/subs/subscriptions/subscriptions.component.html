@@ -1,0 +1,93 @@
+<div class="subs dark-blue-button-wrapper">
+    <button (click)="updateSubs()" mat-raised-button class="blueBtn">Save subscription settings</button>
+</div>
+<div class="subs">
+    <div class="subs_section">
+        <h2 class="subtitle">Genres</h2>
+        <div class="divider">
+            <div class="item" *ngFor="let item of subscription.genres">
+                {{item}}
+                <button (click)="removeGenre(item)" mat-flat-button>X</button>
+            </div>
+        </div>
+
+        <p>Select a genre to subscribe to:</p>
+        <form [formGroup]="genreForm">
+            <mat-form-field>
+                <mat-label>Genre</mat-label>
+                <mat-select formControlName="genre">
+                    <mat-option *ngFor="let g of genres" [value]="g">{{g}}</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </form>
+        <div class="dark-orange-button-wrapper">
+            <button (click)="subscribeToGenre()" class="orangeBtn" mat-raised-button>Subscribe</button>
+        </div>
+    </div>
+    
+    <div class="subs_section">
+        <h2 class="subtitle">Directors</h2>
+        <div class="divider">
+            <div class="item" *ngFor="let item of subscription.directors">
+                {{item}}
+                <button (click)="removeDirector(item)" mat-flat-button>X</button>
+            </div>
+        </div>
+
+        <div class="new_section">
+            <p>Select a director to subscribe to:</p>
+            <form [formGroup]="directorsForm">
+                <mat-form-field>
+                    <mat-label>Director</mat-label>
+                    <mat-select formControlName="director">
+                        <mat-option *ngFor="let d of directors" [value]="d">{{d}}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </form>
+            <div class="dark-orange-button-wrapper">
+                <button (click)="subscribeToDirector()" class="orangeBtn" mat-raised-button>Subscribe</button>
+            </div>
+        </div>
+
+        <p>Can't find what you're looking for?</p>
+        <mat-form-field>
+            <input matInput [(ngModel)]="newDirector" placeholder="John Doe">
+        </mat-form-field>
+        <div class="dark-blue-button-wrapper">
+            <button (click)="subscribeToNewDirector()" class="blueBtn" mat-raised-button>Subscribe</button>
+        </div>
+
+    </div>
+    <div class="subs_section">
+        <h2 class="subtitle">Actors</h2>
+        <div class="divider">
+            <div class="item" *ngFor="let item of subscription.actors">
+                {{item}}
+                <button (click)="removeActor(item)" mat-flat-button>X</button>
+            </div>
+        </div>
+        
+        <div class="new_section">
+            <p>Select an actor to subscribe to:</p>
+            <form [formGroup]="actorsForm">
+                <mat-form-field>
+                    <mat-label>Actor</mat-label>
+                    <mat-select formControlName="actor">
+                        <mat-option *ngFor="let a of actors" [value]="a">{{a}}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </form>
+            <div class="dark-orange-button-wrapper">
+                <button (click)="subscribeToActor()" class="orangeBtn" mat-raised-button>Subscribe</button>
+            </div>
+        </div>
+
+        <p>Can't find what you're looking for?</p>
+        <mat-form-field>
+            <input matInput [(ngModel)]="newActor" placeholder="John Doe">
+        </mat-form-field>
+        <div class="dark-blue-button-wrapper">
+            <button (click)="subscribeToNewActor()" class="blueBtn" mat-raised-button>Subscribe</button>
+        </div>
+    </div>
+</div>
