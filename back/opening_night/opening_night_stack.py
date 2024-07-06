@@ -40,6 +40,9 @@ class OpeningNightStack(Stack):
                 require_symbols=True
             ),
             account_recovery=cognito.AccountRecovery.NONE,
+            custom_attributes={
+                "is_guest": cognito.StringAttribute()
+            }
         )
 
         user_pool_client = user_pool.add_client("OpeningNightUserPoolClient",
@@ -154,7 +157,7 @@ class OpeningNightStack(Stack):
                            ratings_table.table_arn,
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
-                           opening_nights_bucket.bucket_arn + "/*"
+                           opening_nights_bucket.bucket_arn + "/*",
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register

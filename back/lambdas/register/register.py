@@ -9,11 +9,12 @@ def register(event, context):
     body = json.loads(event['body'])
 
     name = body['name']
-    last_name = body['last_name']
+    last_name = body['lastName']
     birthday = datetime.strptime(body['birthday'], '%Y-%m-%d').date().isoformat()
     username = body['username']
     email = body['email']
     password = body['password']
+    is_guest = body['isGuest']
 
     response = ssm.get_parameter(
         Name='client_id'
@@ -28,7 +29,10 @@ def register(event, context):
     if not is_unique(email, pool_id):
         return {
             'statusCode': 400,
-            'body': json.dumps('Email already exists')
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
+            'body': json.dumps('Email already exists.')
         }
 
     try:
@@ -40,7 +44,8 @@ def register(event, context):
                 {'Name': 'name', 'Value': name},
                 {'Name': 'family_name', 'Value': last_name},
                 {'Name': 'birthdate', 'Value': birthday},
-                {'Name': 'email', 'Value': email}
+                {'Name': 'email', 'Value': email},
+                {'Name': 'custom:is_guest', 'Value': str(is_guest)}
             ]
         )
         client.admin_confirm_sign_up(
@@ -49,21 +54,33 @@ def register(event, context):
         )
         return {
             'statusCode': 200,
-            'body': json.dumps('User registered successfully')
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
+            'body': json.dumps('User registered successfully!')
         }
     except client.exceptions.UsernameExistsException as e:
         return {
             'statusCode': 400,
-            'body': json.dumps('Username already exists')
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
+            'body': json.dumps('Username already exists.')
         }
     except client.exceptions.InvalidParameterException as e:
         return {
             'statusCode': 400,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Invalid parameters: ' + str(e))
         }
     except Exception as e:
         return {
             'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Internal server error: ' + str(e))
         }
 

@@ -27,23 +27,35 @@ def login(event, context):
 
         return {
             'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Successful login')
         }
     except client.exceptions.NotAuthorizedException as e:
         
         return {
             'statusCode': 401,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Unauthorized: ' + str(e))
         }
     except client.exceptions.UserNotFoundException as e:
         
         return {
             'statusCode': 404,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('User not found: ' + str(e))
         }
     except Exception as e:
         
         return {
             'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Internal server error: ' + str(e))
         }

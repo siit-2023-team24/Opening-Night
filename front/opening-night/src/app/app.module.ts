@@ -9,6 +9,7 @@ import { MaterialModule } from './material/material.module';
 import { SubsModule } from './subs/subs.module';
 import { SharedModule } from './shared/shared.module';
 import { FilmModule } from './film/film.module';
+import { UsersModule } from './users/users.module';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { FilmModule } from './film/film.module';
     MaterialModule,
     SubsModule,
     SharedModule,
-    FilmModule
+    FilmModule,
+    UsersModule
   ],
   providers: [],
   bootstrap: [AppComponent]
