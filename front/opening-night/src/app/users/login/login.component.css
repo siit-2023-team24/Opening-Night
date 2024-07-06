@@ -1,0 +1,37 @@
+.login-btn {
+    color: white;
+    background-color: #0C4A60;
+}
+
+.register-link {
+    text-decoration: none;
+    color: #EF6C33;
+}
+
+.continue-btn {
+    color: #0C4A60;
+    background-color: #E1DDDB;
+}
+
+.login {
+    width: 500px;
+}
+
+.input-field {
+    width: 80%;
+    margin: 25px;
+    box-sizing: border-box;
+    background-color: #E1DDDB;
+    border: none;
+    height: 30px;
+    padding: 5px;
+    font-size: 16px;
+}
+.no-account{
+    margin: 15px 0 35px 0;
+}
+
+.error {
+    color: red;
+    height : 50px;
+}

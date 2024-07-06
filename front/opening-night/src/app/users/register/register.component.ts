@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, Validators, ValidatorFn, ValidationErrors, Abst
 import { Router } from '@angular/router';
 import { UserService } from '../user.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { User } from 'src/app/shared/user';
+import { User } from '../model/user';
 
 const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const passwordControl = control.get('password');
@@ -65,6 +65,34 @@ export class RegisterComponent implements OnInit {
     }, { validator: passwordMatchValidator });
   }
 
+  isOver18(birthday: Date, now: Date): boolean {
+    console.log(birthday)
+    const yearNow = now.getFullYear();
+    const yearBirthday = birthday.getFullYear();
+    const monthNow = now.getMonth();
+    const monthBirthday = birthday.getMonth();
+    const dayNow = now.getDate();
+    const dayBirthday = birthday.getDate();
+  
+    const yearDifference = yearNow - yearBirthday;
+  
+    if (yearDifference < 18) {
+      return false;
+    }
+    if (yearDifference > 18) {
+      return true;
+    }
+    return (monthNow > monthBirthday || (monthNow === monthBirthday && dayNow >= dayBirthday))
+  }
+
+  formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = ('0' + (date.getMonth() + 1)).slice(-2); // months are 0-based
+    const day = ('0' + date.getDate()).slice(-2);
+  
+    return `${year}-${month}-${day}`;
+  }
+
   onRegisterClick(): void {
     if(!this.registerForm.valid) {
       this.errorMessage = 'Please fill out all the fields according to the validations.'
@@ -104,34 +132,6 @@ export class RegisterComponent implements OnInit {
         }
       }
     });
-  }
-
-  isOver18(birthday: Date, now: Date): boolean {
-    console.log(birthday)
-    const yearNow = now.getFullYear();
-    const yearBirthday = birthday.getFullYear();
-    const monthNow = now.getMonth();
-    const monthBirthday = birthday.getMonth();
-    const dayNow = now.getDate();
-    const dayBirthday = birthday.getDate();
-  
-    const yearDifference = yearNow - yearBirthday;
-  
-    if (yearDifference < 18) {
-      return false;
-    }
-    if (yearDifference > 18) {
-      return true;
-    }
-    return (monthNow > monthBirthday || (monthNow === monthBirthday && dayNow >= dayBirthday))
-  }
-
-  formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = ('0' + (date.getMonth() + 1)).slice(-2); // months are 0-based
-    const day = ('0' + date.getDate()).slice(-2);
-  
-    return `${year}-${month}-${day}`;
   }
 }
 

@@ -1,1 +1,31 @@
-<p>login works!</p>
+<div class="page">
+    <main>
+        <form [formGroup]="loginForm">
+            <div class="form login">
+                <mat-form-field>
+                    <input matInput type="text" formControlName="username" id="username" name="username" autocomplete="username" placeholder="Username">
+                    <mat-error *ngIf="loginForm.get('username')?.hasError('required')">
+                        Username is required.
+                    </mat-error>
+                </mat-form-field>
+                <br>
+                <mat-form-field>
+                    <input matInput type="password" formControlName="password" id="password" name="password" autocomplete="password" placeholder="Password">
+                    <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+                        Password is required.
+                    </mat-error>
+                </mat-form-field>
+                <br>
+                <button mat-raised-button id="login_button" class="button login-btn" (click)="login()">Sign in</button>
+                <p class="error">{{ errorMessage }}</p>
+                <p class="no-account">
+                    Don't have an account yet?
+                    <a class="register-link" [routerLink]="['/register']" [queryParams]="{title: 'Registration'}">
+                        Register now.
+                    </a>
+                </p>
+                <button mat-stroked-button id="continue_button" class="button continue-btn" [routerLink]="['/home']" [queryParams]="{title: 'Home'}">Continue without signing in</button>
+            </div>
+        </form>
+    </main>
+</div>
