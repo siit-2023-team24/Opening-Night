@@ -1,0 +1,37 @@
+<div *ngIf="filmDTO" class="film-details">
+  <h2>{{ filmDTO.title }}</h2>
+  <p>{{ filmDTO.description }}</p>
+  <p><strong>Actors:</strong> {{ filmDTO.actors.join(', ') }}</p>
+  <p><strong>Directors:</strong> {{ filmDTO.directors.join(', ') }}</p>
+  <p><strong>Genres:</strong> {{ filmDTO.genres.join(', ') }}</p>
+
+  <!-- Video Player Section -->
+  <div class="video-container" *ngIf="!filmDTO.isSeries">
+    <video controls #videoPlayer>
+      <source [src]="videoSource" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <!-- Series Section -->
+  <div *ngIf="filmDTO.isSeries">
+    <h3>{{ filmDTO.series }} - Season {{ filmDTO.season }} Episode {{ filmDTO.episode }}</h3>
+    <video controls [src]="filmDTO.file"></video>
+
+    <!-- Episodes Grid -->
+    <div class="episodes-grid">
+      <div *ngFor="let season of seasons">
+        <h4>Season {{ season }}</h4>
+        <div *ngFor="let ep of episodes">
+          <div *ngIf="ep.seasonNumber === season">
+            <button color="episode" mat-raised-button (click)="loadEpisode(ep.id)">Episode {{ ep.episodeNumber }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="full-width add-file-button">
+    <input type="file" (change)="onFileChange($event)">
+  </div>
+</div>

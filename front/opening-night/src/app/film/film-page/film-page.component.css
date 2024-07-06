@@ -1,0 +1,46 @@
+.film-details {
+max-width: 80%;
+margin: 0 auto;
+padding: 20px;
+background-color: #f0f0f0;
+border-radius: 8px;
+box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.video-container {
+text-align: center;
+margin-bottom: 20px;
+}
+
+video {
+max-width: 100%;
+}
+
+.episodes-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+gap: 10px;
+}
+
+.season {
+padding: 10px;
+border: 1px solid #ccc;
+border-radius: 8px;
+}
+
+.episode-buttons {
+display: flex;
+flex-wrap: wrap;
+gap: 10px;
+}
+
+.mat-episode {
+    background-color: #0C4A60;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+button {
+min-width: 120px;
+}
+  

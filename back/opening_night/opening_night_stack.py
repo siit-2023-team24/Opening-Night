@@ -186,7 +186,7 @@ class OpeningNightStack(Stack):
             "upload_film.create",
             "lambdas/uploadFilm",
             "POST",
-            [util_layer]
+            []
         )
 
         download_film_lambda = create_lambda_function(
@@ -221,6 +221,53 @@ class OpeningNightStack(Stack):
             []
         )
 
+        get_film_by_id_lambda = create_lambda_function(
+            "getFilmById",
+            "get_film_by_id.get_film",
+            "lambdas/getFilmById",
+            "GET",
+            []
+        )
+
+        update_film_lambda = create_lambda_function(
+            "updateFilm",
+            "update_film.update",
+            "lambdas/updateFilm",
+            "PUT",
+            []
+        )
+
+        update_film_file_changed_lambda = create_lambda_function(
+            "updateFilmFileChanged",
+            "update_film_file_changed.update",
+            "lambdas/updateFilmFileChanged",
+            "PUT",
+            []
+        )
+
+        get_all_films_lambda = create_lambda_function(
+            "getAllFilms",
+            "get_all_films.get",
+            "lambdas/getAllFilms",
+            "GET",
+            []
+        )
+
+        get_series_list_lambda = create_lambda_function(
+            "getSeriesList",
+            "get_series_list.get",
+            "lambdas/getSeriesList",
+            "GET",
+            []
+        )
+
+        get_episodes_by_series_lambda = create_lambda_function(
+            "getEpisodesBySeries",
+            "get_episodes_by_series.get",
+            "lambdas/getEpisodesBySeries",
+            "GET",
+            []
+        )
 
         get_ratings_for_film_lambda = create_lambda_function(
             "getRatingForFilm",
@@ -267,11 +314,23 @@ class OpeningNightStack(Stack):
         films = opening_nights_api.root.add_resource("films")
         upload_film_integration = apigateway.LambdaIntegration(upload_film_lambda)
         films.add_method("POST", upload_film_integration)
+        get_all_films_integration = apigateway.LambdaIntegration(get_all_films_lambda)
+        films.add_method("GET", get_all_films_integration)
 
         film = opening_nights_api.root.add_resource("{name}")
         download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
         film.add_method("GET", download_film_integration)
 
+        film_by_id = films.add_resource("{id}")
+        get_film_by_id_integration = apigateway.LambdaIntegration(get_film_by_id_lambda)
+        film_by_id.add_method("GET", get_film_by_id_integration)
+
+        update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
+        films.add_method("PUT", update_film_integration)
+
+        update_film_file_changed_integration = apigateway.LambdaIntegration(update_film_file_changed_lambda)
+        film_update_file = films.add_resource('update')
+        film_update_file.add_method('PUT', update_film_file_changed_integration)
 
         subs_resource = opening_nights_api.root.add_resource('subscriptions')
         subs = subs_resource.add_resource("{username}")
@@ -286,6 +345,14 @@ class OpeningNightStack(Stack):
         actors_and_directors = opening_nights_api.root.add_resource("actors-and-directors")
         get_actors_and_directors_integration = apigateway.LambdaIntegration(get_actors_and_directors_lambda)
         actors_and_directors.add_method("GET", get_actors_and_directors_integration)
+
+        series_resource = films.add_resource("series")
+        get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
+        series_resource.add_method("GET", get_series_list_integration)
+
+        series_episodes_resource = series_resource.add_resource("{seriesName}").add_resource("episodes")
+        get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
+        series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
 
         ratings = opening_nights_api.root.add_resource("ratings")
         rate_film_integration = apigateway.LambdaIntegration(rate_film_lambda)
