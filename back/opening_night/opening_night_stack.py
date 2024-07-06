@@ -8,7 +8,11 @@ from aws_cdk import (
     Duration,
     BundlingOptions,
     aws_s3 as s3,
-    RemovalPolicy
+    RemovalPolicy,
+    aws_sqs as sqs,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
+    aws_lambda_event_sources as eventsources,
 )
 
 from aws_cdk.aws_lambda_python_alpha import PythonLayerVersion
@@ -50,12 +54,29 @@ class OpeningNightStack(Stack):
             write_capacity=1,
         )
 
-        # ratings_table.add_global_secondary_index(
-        #     index_name='username-index',
-        #     partition_key=dynamodb.Attribute(name='username', type=dynamodb.AttributeType.STRING),
-        #     sort_key=dynamodb.Attribute(name='timestamp', type=dynamodb.AttributeType.STRING),
-        #     projection_type=dynamodb.ProjectionType.ALL
-        # )
+        ratings_table.add_global_secondary_index(
+            index_name='username-index',
+            partition_key=dynamodb.Attribute(name='username', type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        downloads_log_table = dynamodb.Table(
+            self, "Downloads-Log-Table",
+            table_name="downloads-log-table",
+            partition_key=dynamodb.Attribute(name="username", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="timestamp", type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1
+        )
+
+        feed_table = dynamodb.Table(
+            self, "Feed-Table",
+            table_name="feed-table",
+            partition_key=dynamodb.Attribute(name="username", type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1
+        )
 
         opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
                             bucket_name="opening-night-bucket",
@@ -90,10 +111,18 @@ class OpeningNightStack(Stack):
                 resources=[opening_nights_table.table_arn, 
                            subs_table.table_arn,
                            ratings_table.table_arn,
+                           downloads_log_table.table_arn,
+                           feed_table.table_arn,
                            opening_nights_bucket.bucket_arn + "/*"]
             )
         )
-        def create_lambda_function(id, handler, include_dir, method, layers):
+
+        feed_queue = sqs.Queue(
+            self, "FeedQueue",
+        )
+
+
+        def create_lambda_function(id, handler, include_dir, method, layers, env_var=''):
             function = _lambda.Function(
                 self, id,
                 runtime=_lambda.Runtime.PYTHON_3_9,
@@ -113,7 +142,10 @@ class OpeningNightStack(Stack):
                     'TABLE_NAME': opening_nights_table.table_name,
                     'SUBS_TABLE_NAME': subs_table.table_name,
                     'RATINGS_TABLE_NAME': ratings_table.table_name,
-                    'BUCKET_NAME': opening_nights_bucket.bucket_name
+                    'DOWNLOADS_TABLE_NAME': downloads_log_table.table_name,
+                    'FEED_TABLE_NAME': feed_table.table_name,
+                    'BUCKET_NAME': opening_nights_bucket.bucket_name,
+                    'CUSTOM_VAR': env_var
                 },
                 role=lambda_role
             )
@@ -187,6 +219,94 @@ class OpeningNightStack(Stack):
             "POST",
             []
         )
+
+
+        #Feed step
+
+        calc_downloads_score_lambda = create_lambda_function(
+            "calcDownloadsScore",
+            "calc_downloads_score.calc_downloads_score",
+            "lambdas/calcDownloadsScore",
+            "",
+            []
+        )
+
+        calc_ratings_score_lambda = create_lambda_function(
+            "calcRatingsScore",
+            "calc_ratings_score.calc_ratings_score",
+            "lambdas/calcRatingsScore",
+            "",
+            []
+        )
+
+        calc_subs_score_lambda = create_lambda_function(
+            "calcSubscriptionsScore",
+            "calc_subscriptions_score.calc_subs_score",
+            "lambdas/calcSubscriptionsScore",
+            "",
+            []
+        )
+
+        determine_feed_lambda = create_lambda_function(
+            "determineFeed",
+            "determine_feed.determine_feed",
+            "lambdas/determineFeed",
+            "",
+            []
+        )
+
+        calc_downloads_score_task = tasks.LambdaInvoke(
+            self, "CalcDownloadsScoreTask",
+            lambda_function=calc_downloads_score_lambda,
+            output_path="$.Payload"
+        )
+
+        calc_ratings_score_task = tasks.LambdaInvoke(
+            self, "CalcRatingsScoreTask",
+            lambda_function=calc_ratings_score_lambda,
+            output_path="$.Payload"
+        )
+
+        calc_subs_score_task = tasks.LambdaInvoke(
+            self, "CalcSubscriptionsScoreTask",
+            lambda_function=calc_subs_score_lambda,
+            output_path="$.Payload"
+        )
+
+        feed_parallel_tasks = sfn.Parallel(self, "FeedParallelTasks")
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_downloads_score_task))
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_ratings_score_task))
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_subs_score_task))
+
+        determine_feed_task = tasks.LambdaInvoke(
+            self, "DetermineFeedTask",
+            lambda_function=determine_feed_lambda,
+            input_path="$.Payload"
+        )
+
+        feed_parallel_tasks.next(determine_feed_task)
+
+        feed_definition = feed_parallel_tasks
+
+        feed_step_function = sfn.StateMachine(
+            self, "FeedStateMashine",
+            definition_body=sfn.DefinitionBody.from_chainable(feed_definition),
+            comment='Determine and persist feed for user'
+        )
+
+        read_feed_sqs_lambda = create_lambda_function(
+            "readFeedSqs",
+            "read_feed_sqs.read",
+            "lambdas/readFeedSqs",
+            "",
+            [],
+            feed_step_function.state_machine_arn
+        )
+        feed_queue.grant_consume_messages(read_feed_sqs_lambda)
+        # feed_step_function.grant_start_execution(read_feed_sqs_lambda)
+        read_feed_sqs_lambda.add_event_source(eventsources.SqsEventSource(feed_queue))
+
+        #API Gateway
 
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
             default_cors_preflight_options={
