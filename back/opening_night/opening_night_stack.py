@@ -9,7 +9,8 @@ from aws_cdk import (
     aws_s3 as s3,
     RemovalPolicy,
     aws_cognito as cognito,
-    aws_ssm as ssm
+    aws_ssm as ssm,
+    aws_sqs as sqs,
 )
 
 from aws_cdk.aws_lambda_python_alpha import PythonLayerVersion
@@ -90,12 +91,29 @@ class OpeningNightStack(Stack):
             write_capacity=1,
         )
 
-        # ratings_table.add_global_secondary_index(
-        #     index_name='username-index',
-        #     partition_key=dynamodb.Attribute(name='username', type=dynamodb.AttributeType.STRING),
-        #     sort_key=dynamodb.Attribute(name='timestamp', type=dynamodb.AttributeType.STRING),
-        #     projection_type=dynamodb.ProjectionType.ALL
-        # )
+        ratings_table.add_global_secondary_index(
+            index_name='username-index',
+            partition_key=dynamodb.Attribute(name='username', type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+  
+        downloads_log_table = dynamodb.Table(
+            self, "Downloads-Log-Table",
+            table_name="downloads-log-table",
+            partition_key=dynamodb.Attribute(name="username", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="timestamp", type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1
+        )
+
+        feed_table = dynamodb.Table(
+            self, "Feed-Table",
+            table_name="feed-table",
+            partition_key=dynamodb.Attribute(name="username", type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1
+        )
 
         opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
             bucket_name="opening-night-bucket",
@@ -134,7 +152,9 @@ class OpeningNightStack(Stack):
                 resources=[opening_nights_table.table_arn,
                            subs_table.table_arn,
                            ratings_table.table_arn,
-                           opening_nights_bucket.bucket_arn + "/*"]
+                           downloads_log_table.table_arn,
+                           feed_table.table_arn,
+                           opening_nights_bucket.bucket_arn + "/*"
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
@@ -142,7 +162,12 @@ class OpeningNightStack(Stack):
         )
         #TODO razdvojiti prava
 
-        def create_lambda_function(id, handler, include_dir, method, layers):
+
+        feed_queue = sqs.Queue(
+            self, "FeedQueue",
+        )
+
+        def create_lambda_function(id, handler, include_dir, method, layers, env_var=''):
             function = _lambda.Function(
                 self, id,
                 runtime=_lambda.Runtime.PYTHON_3_9,
@@ -162,7 +187,10 @@ class OpeningNightStack(Stack):
                     'TABLE_NAME': opening_nights_table.table_name,
                     'SUBS_TABLE_NAME': subs_table.table_name,
                     'RATINGS_TABLE_NAME': ratings_table.table_name,
-                    'BUCKET_NAME': opening_nights_bucket.bucket_name
+                    'DOWNLOADS_TABLE_NAME': downloads_log_table.table_name,
+                    'FEED_TABLE_NAME': feed_table.table_name,
+                    'BUCKET_NAME': opening_nights_bucket.bucket_name,
+                    'CUSTOM_VAR': env_var
                 },
                 role=lambda_role
             )
@@ -253,21 +281,21 @@ class OpeningNightStack(Stack):
             []
         )
 
-        get_series_list_lambda = create_lambda_function(
-            "getSeriesList",
-            "get_series_list.get",
-            "lambdas/getSeriesList",
-            "GET",
-            []
-        )
+        # get_series_list_lambda = create_lambda_function(
+        #     "getSeriesList",
+        #     "get_series_list.get",
+        #     "lambdas/getSeriesList",
+        #     "GET",
+        #     []
+        # )
 
-        get_episodes_by_series_lambda = create_lambda_function(
-            "getEpisodesBySeries",
-            "get_episodes_by_series.get",
-            "lambdas/getEpisodesBySeries",
-            "GET",
-            []
-        )
+        # get_episodes_by_series_lambda = create_lambda_function(
+        #     "getEpisodesBySeries",
+        #     "get_episodes_by_series.get",
+        #     "lambdas/getEpisodesBySeries",
+        #     "GET",
+        #     []
+        # )
 
         get_ratings_for_film_lambda = create_lambda_function(
             "getRatingForFilm",
@@ -347,12 +375,12 @@ class OpeningNightStack(Stack):
         actors_and_directors.add_method("GET", get_actors_and_directors_integration)
 
         series_resource = films.add_resource("series")
-        get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
-        series_resource.add_method("GET", get_series_list_integration)
+        # get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
+        # series_resource.add_method("GET", get_series_list_integration)
 
         series_episodes_resource = series_resource.add_resource("{seriesName}").add_resource("episodes")
-        get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
-        series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
+        # get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
+        # series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
 
         ratings = opening_nights_api.root.add_resource("ratings")
         rate_film_integration = apigateway.LambdaIntegration(rate_film_lambda)
