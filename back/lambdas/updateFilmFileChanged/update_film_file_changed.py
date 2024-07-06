@@ -3,18 +3,30 @@ import os
 import boto3
 import base64
 from datetime import datetime
-import uuid
 
 s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
-def create(event, context):
+
+def update(event, context):
     body = json.loads(event['body'])
 
-    film_id = str(uuid.uuid4())
+    film_id = body['filmId']
     file_name = body['fileName']
     file_content = base64.b64decode(body['fileContent'])
 
     bucket_name = os.environ['BUCKET_NAME']
+    table_name = os.environ['TABLE_NAME']
+    table = dynamodb.Table(table_name)
+
+    response = table.get_item(Key={'filmId': film_id})
+    
+    if 'Item' in response:
+        old_file_name = response['Item']['fileName']
+        
+        s3_client.delete_object(Bucket=bucket_name, Key=old_file_name)
+        
+        table.delete_item(Key={'filmId': film_id})
+
     s3_client.put_object(
         Bucket=bucket_name,
         Key=file_name,
@@ -29,8 +41,6 @@ def create(event, context):
         },
     )
 
-    table_name = os.environ['TABLE_NAME']
-    table = dynamodb.Table(table_name)
     table.put_item(
         Item = {
                 'filmId': film_id,
@@ -46,7 +56,7 @@ def create(event, context):
     )
 
     message = {
-        'message': 'Successfully uploaded film'
+        'message': 'Successfully updated film'
     }
 
     return { 

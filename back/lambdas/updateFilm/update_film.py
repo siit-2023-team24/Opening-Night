@@ -1,36 +1,22 @@
 import json
-import os
 import boto3
-import base64
-from datetime import datetime
-import uuid
+import os
 
-s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
-def create(event, context):
+
+def update(event, context):
     body = json.loads(event['body'])
 
-    film_id = str(uuid.uuid4())
-    file_name = body['fileName']
-    file_content = base64.b64decode(body['fileContent'])
-
-    bucket_name = os.environ['BUCKET_NAME']
-    s3_client.put_object(
-        Bucket=bucket_name,
-        Key=file_name,
-        Body=file_content,
-        ContentType='video/mp4',
-        Metadata={
-            'Name': file_name,
-            'Type': 'video/mp4',
-            'Size': f"{len(file_content)}B",
-            'Time created': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'Last modified': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        },
-    )
+    film_id = body['filmId']
 
     table_name = os.environ['TABLE_NAME']
     table = dynamodb.Table(table_name)
+
+    response = table.get_item(Key={'filmId': film_id})
+    
+    if 'Item' in response:
+        table.delete_item(Key={'filmId': film_id})
+
     table.put_item(
         Item = {
                 'filmId': film_id,
@@ -46,9 +32,9 @@ def create(event, context):
     )
 
     message = {
-        'message': 'Successfully uploaded film'
+        'message': 'Successfully updated film'
     }
-
+    
     return { 
             'statusCode': 200, 
             'headers': {
