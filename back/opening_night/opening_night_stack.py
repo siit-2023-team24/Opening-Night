@@ -8,9 +8,12 @@ from aws_cdk import (
     BundlingOptions,
     aws_s3 as s3,
     RemovalPolicy,
+    aws_sqs as sqs,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
+    aws_lambda_event_sources as eventsources,
     aws_cognito as cognito,
     aws_ssm as ssm,
-    aws_sqs as sqs,
 )
 
 from aws_cdk.aws_lambda_python_alpha import PythonLayerVersion
@@ -97,7 +100,7 @@ class OpeningNightStack(Stack):
             sort_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
             projection_type=dynamodb.ProjectionType.ALL
         )
-  
+
         downloads_log_table = dynamodb.Table(
             self, "Downloads-Log-Table",
             table_name="downloads-log-table",
@@ -312,7 +315,7 @@ class OpeningNightStack(Stack):
             "POST",
             []
         )
-
+        
         login_lambda = create_lambda_function(
             "login",
             "login.login",
@@ -329,6 +332,92 @@ class OpeningNightStack(Stack):
             []
         )
 
+        #Feed step
+
+        calc_downloads_score_lambda = create_lambda_function(
+            "calcDownloadsScore",
+            "calc_downloads_score.calc_downloads_score",
+            "lambdas/calcDownloadsScore",
+            "",
+            []
+        )
+
+        calc_ratings_score_lambda = create_lambda_function(
+            "calcRatingsScore",
+            "calc_ratings_score.calc_ratings_score",
+            "lambdas/calcRatingsScore",
+            "",
+            []
+        )
+
+        calc_subs_score_lambda = create_lambda_function(
+            "calcSubscriptionsScore",
+            "calc_subscriptions_score.calc_subs_score",
+            "lambdas/calcSubscriptionsScore",
+            "",
+            []
+        )
+
+        determine_feed_lambda = create_lambda_function(
+            "determineFeed",
+            "determine_feed.determine_feed",
+            "lambdas/determineFeed",
+            "",
+            []
+        )
+
+        calc_downloads_score_task = tasks.LambdaInvoke(
+            self, "CalcDownloadsScoreTask",
+            lambda_function=calc_downloads_score_lambda,
+            output_path="$.Payload"
+        )
+
+        calc_ratings_score_task = tasks.LambdaInvoke(
+            self, "CalcRatingsScoreTask",
+            lambda_function=calc_ratings_score_lambda,
+            output_path="$.Payload"
+        )
+
+        calc_subs_score_task = tasks.LambdaInvoke(
+            self, "CalcSubscriptionsScoreTask",
+            lambda_function=calc_subs_score_lambda,
+            output_path="$.Payload"
+        )
+
+        feed_parallel_tasks = sfn.Parallel(self, "FeedParallelTasks")
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_downloads_score_task))
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_ratings_score_task))
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_subs_score_task))
+
+        determine_feed_task = tasks.LambdaInvoke(
+            self, "DetermineFeedTask",
+            lambda_function=determine_feed_lambda,
+            input_path="$.Payload"
+        )
+
+        feed_parallel_tasks.next(determine_feed_task)
+
+        feed_definition = feed_parallel_tasks
+
+        feed_step_function = sfn.StateMachine(
+            self, "FeedStateMashine",
+            definition_body=sfn.DefinitionBody.from_chainable(feed_definition),
+            comment='Determine and persist feed for user'
+        )
+
+        read_feed_sqs_lambda = create_lambda_function(
+            "readFeedSqs",
+            "read_feed_sqs.read",
+            "lambdas/readFeedSqs",
+            "",
+            [],
+            feed_step_function.state_machine_arn
+        )
+        feed_queue.grant_consume_messages(read_feed_sqs_lambda)
+        # feed_step_function.grant_start_execution(read_feed_sqs_lambda)
+        read_feed_sqs_lambda.add_event_source(eventsources.SqsEventSource(feed_queue))
+
+        #API Gateway
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
             default_cors_preflight_options={
                 "allow_origins": apigateway.Cors.ALL_ORIGINS,
