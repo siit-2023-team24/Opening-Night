@@ -1,0 +1,96 @@
+<div class="container">
+  <h2 class="title">Upload Movie</h2>
+  <form (ngSubmit)="onSubmit()" #uploadForm="ngForm" class="form-container">
+    <mat-form-field class="full-width">
+      <mat-label>Title</mat-label>
+      <input matInput placeholder="Title" name="title" [(ngModel)]="filmDTO.title" required>
+    </mat-form-field>
+  
+    <mat-form-field class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput placeholder="Description" name="description" [(ngModel)]="filmDTO.description" required></textarea>
+    </mat-form-field>
+  
+    <mat-form-field class="full-width">
+      <mat-label>Actors</mat-label>
+      <mat-select placeholder="Select Actors" multiple [(ngModel)]="filmDTO.actors" name="actors">
+        <mat-option *ngFor="let actor of actors" [value]="actor">
+          {{ actor }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="add-actor-director-series">
+      <mat-form-field class="full-width">
+        <input matInput placeholder="Add new actor" [(ngModel)]="newActor" name="newActor">
+      </mat-form-field>
+      <button mat-raised-button color="primary" type="button" (click)="addNewActor()">Add Actor</button>
+    </div>
+  
+    <mat-form-field class="full-width">
+      <mat-label>Directors</mat-label>
+      <mat-select placeholder="Select Directors" multiple [(ngModel)]="filmDTO.directors" name="directors">
+        <mat-option *ngFor="let director of directors" [value]="director">
+          {{ director }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="add-actor-director-series">
+      <mat-form-field class="full-width">
+        <input matInput placeholder="Add new director" [(ngModel)]="newDirector" name="newDirector">
+      </mat-form-field>
+      <button mat-raised-button color="primary" type="button" (click)="addNewDirector()">Add Director</button>
+    </div>
+  
+    <mat-form-field class="full-width">
+      <mat-label>Genres</mat-label>
+      <mat-select placeholder="Select Genres" multiple [(ngModel)]="filmDTO.genres" name="genres">
+        <mat-option *ngFor="let genre of genres" [value]="genre">
+          {{ genre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  
+    <mat-slide-toggle [(ngModel)]="filmDTO.isSeries" name="isSeries" (change)="onToggleSeries($event)" class="toggle">
+      Is Series
+    </mat-slide-toggle>
+  
+    <div *ngIf="filmDTO.isSeries">
+      <mat-form-field class="full-width">
+        <mat-label>Series Name</mat-label>
+        <mat-select placeholder="Select Series" name="series" [(ngModel)]="filmDTO.series" required>
+          <mat-option *ngFor="let series of seriesList" [value]="series">
+            {{ series }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <div class="add-actor-director-series" *ngIf="filmDTO.isSeries">
+        <mat-form-field class="full-width">
+          <input matInput placeholder="Add new series" [(ngModel)]="newSeries" name="newSeries">
+        </mat-form-field>
+        <button mat-raised-button color="primary" type="button" (click)="addNewSeries()">Add Series</button>
+      </div>
+
+      <mat-form-field class="full-width">
+        <mat-label>Season Number</mat-label>
+        <input matInput type="number" placeholder="Season Number" [(ngModel)]="filmDTO.season" name="season" required>
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>Episode Number</mat-label>
+        <input matInput type="number" placeholder="Episode Number" [(ngModel)]="filmDTO.episode" name="episode" required>
+      </mat-form-field>
+    </div>
+  
+    <div class="full-width" class="add-file-button">
+      <input type="file" (change)="onFileChange($event)">
+    </div>
+  
+    <div class="submit-button">
+      <button type="submit" color="primary" mat-raised-button [disabled]="uploadForm.invalid || !selectedFile">Upload</button>
+    </div>
+  </form>    
+</div>
+  
