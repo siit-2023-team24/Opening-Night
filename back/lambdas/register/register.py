@@ -49,21 +49,33 @@ def register(event, context):
         )
         return {
             'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('User registered successfully')
         }
     except client.exceptions.UsernameExistsException as e:
         return {
             'statusCode': 400,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Username already exists')
         }
     except client.exceptions.InvalidParameterException as e:
         return {
             'statusCode': 400,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Invalid parameters: ' + str(e))
         }
     except Exception as e:
         return {
             'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('Internal server error: ' + str(e))
         }
 
