@@ -20,7 +20,10 @@ def rate(event, context):
                 'filmId': body['filmId'],
                 'username': body['username'],
                 'timestamp': timestamp,
-                'stars': body['stars']
+                'stars': body['stars'],
+                'genres': body['genres'],
+                'directors': body['directors'],
+                'actors': body['actors']
             }
         )
         status = 200

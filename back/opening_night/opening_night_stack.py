@@ -335,6 +335,14 @@ class OpeningNightStack(Stack):
             []
         )
 
+        get_feed_lambda = create_lambda_function(
+            "getFeed",
+            "get_feed.get_feed",
+            "lambdas/getFeed",
+            "GET",
+            []
+        )
+
         #Feed step
 
         calc_downloads_score_lambda = create_lambda_function(
@@ -524,4 +532,7 @@ class OpeningNightStack(Stack):
         register_integration = apigateway.LambdaIntegration(register_lambda)
         register.add_method("POST", register_integration)
 
+        feed = opening_nights_api.root.add_resource("feed").add_resource("{username}")
+        get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
+        feed.add_method("GET", get_feed_integration)
 

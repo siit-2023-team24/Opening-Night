@@ -1,6 +1,5 @@
 import os
 import boto3
-import json
 from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
@@ -11,9 +10,6 @@ def calc_ratings_score(event, context):
 
     table_name = os.environ['RATINGS_TABLE_NAME']
     table = dynamodb.Table(table_name)
-    
-    film_table_name = os.environ['TABLE_NAME']
-    film_table = dynamodb.Table(film_table_name)
 
     items = table.query(
         IndexName='username-index',
@@ -50,31 +46,24 @@ def calc_ratings_score(event, context):
             score *= 0.25
 
         score *= time_score
+  
+        directors_list = rating['directors']
+        for d in directors_list:
+            if (d not in directors):
+                directors[d] = []
+            directors[d].append(score)
 
-        # get the genres, directors and actors for the film and declare the score for each of them
-        film = film_table.get_item(Key={'filmId': rating['filmId']})
+        actors_list = rating['actors']
+        for a in actors_list:
+            if (a not in actors):
+                actors[a] = []
+            actors[a].append(score)
 
-        try:    
-            item = film['Item']
-            directors_list = item['directors']
-            for d in directors_list:
-                if (d not in directors):
-                    directors[d] = []
-                directors[d].append(score)
-
-            actors_list = item['actors']
-            for a in actors_list:
-                if (a not in actors):
-                    actors[a] = []
-                actors[a].append(score)
-
-            genres_list = item['genres']
-            for g in genres_list:
-                if (g not in genres):
-                    genres[g] = []
-                genres[g].append(score)
-        except (KeyError):
-            print('username not found error (no item found)')
+        genres_list = rating['genres']
+        for g in genres_list:
+            if (g not in genres):
+                genres[g] = []
+            genres[g].append(score)
 
     for d in directors.keys():
         directors[d] = sum(directors[d]) / len(directors[d])

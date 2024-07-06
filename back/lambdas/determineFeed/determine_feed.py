@@ -1,7 +1,5 @@
 import os
 import boto3
-import json
-from bisect import insort
 
 dynamodb = boto3.resource('dynamodb')
 

@@ -1,6 +1,5 @@
 import os
 import boto3
-import json
 
 dynamodb = boto3.resource('dynamodb')
 

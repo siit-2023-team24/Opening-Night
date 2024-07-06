@@ -20,6 +20,7 @@ def get_ratings_for_film(event, context):
         )
         status = 200
         body = items['Items']
+        body = [{'username': r['username'], 'timestamp': r['timestamp'], 'stars': r['stars']} for r in items]
 
     except BaseException as e:
         print(e)

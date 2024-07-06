@@ -13,6 +13,15 @@ export class RatingsComponent implements OnInit {
   @Input()
   filmId: string = '';
 
+  @Input()
+  genres: string[] = [];
+
+  @Input()
+  directors: string[] = [];
+
+  @Input()
+  actors: string[] = [];
+
   stars: boolean[] = [false, false, false, false, false]
   rating: number = 0;
   noRating: boolean = false;
@@ -62,7 +71,10 @@ export class RatingsComponent implements OnInit {
     const dto: Rating = {
       filmId: this.filmId,
       username: username,
-      stars: this.rating
+      stars: this.rating,
+      genres: this.genres,
+      directors: this.directors,
+      actors: this.actors
     }
 
       this.service.rate(dto).subscribe({
