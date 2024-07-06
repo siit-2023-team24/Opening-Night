@@ -8,9 +8,9 @@ import boto3.dynamodb.conditions
 
 dynamodb = boto3.resource('dynamodb')
 
-def calc_downloads_score(input):
+def calc_downloads_score(event, context):
     
-    username = input['username']
+    username = event['username']
 
     table_name = os.environ['DOWNLOADS_TABLE_NAME']
     table = dynamodb.Table(table_name)
@@ -68,13 +68,13 @@ def calc_downloads_score(input):
             except (KeyError):
                 genres[g] = [score]
 
-    for d in directors.keys:
+    for d in directors.keys():
         directors[d] = sum(directors[d]) / len(directors[d])
 
-    for a in actors.keys:
+    for a in actors.keys():
         actors[a] = sum(actors[a]) / len(actors[a])
         
-    for d in genres.keys:
+    for d in genres.keys():
         genres[d] = sum(genres[d]) / len(genres[d])
 
     response = {
@@ -83,5 +83,5 @@ def calc_downloads_score(input):
             'downloads_actors': actors,
             'downloaded_films': downloaded_films
             }
-    return response
+    return {'Download': response}
 

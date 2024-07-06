@@ -11,6 +11,6 @@ def read(event, context):
 
         response = sfn_client.start_execution(
             stateMachineArn=state_machine_arn,
-            input=json.dumps({"username": username})
+            input=json.dumps(username)
         )
         print(response)

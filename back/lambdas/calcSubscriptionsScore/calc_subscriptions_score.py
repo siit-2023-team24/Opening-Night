@@ -4,11 +4,11 @@ import json
 
 dynamodb = boto3.resource('dynamodb')
 
-def calc_subs_score(input):
+def calc_subs_score(event, context):
 
-    CONST = 0.8
+    CONST = 1
 
-    username = input['username']
+    username = event['username']
 
     table_name = os.environ['SUBS_TABLE_NAME']
     table = dynamodb.Table(table_name)
@@ -38,5 +38,5 @@ def calc_subs_score(input):
             'subs_actors': actors,
             'username': username
             }
-    return response
+    return {'Subs': response}
     

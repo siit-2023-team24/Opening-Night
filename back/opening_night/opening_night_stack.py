@@ -155,6 +155,7 @@ class OpeningNightStack(Stack):
                 resources=[opening_nights_table.table_arn,
                            subs_table.table_arn,
                            ratings_table.table_arn,
+                           f"{ratings_table.table_arn}/index/username-index",
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
                            opening_nights_bucket.bucket_arn + "/*"
@@ -163,6 +164,8 @@ class OpeningNightStack(Stack):
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
             )
         )
+
+        
         #TODO razdvojiti prava
 
 
@@ -170,7 +173,7 @@ class OpeningNightStack(Stack):
             self, "FeedQueue",
         )
 
-        def create_lambda_function(id, handler, include_dir, method, layers, env_var=''):
+        def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
             function = _lambda.Function(
                 self, id,
                 runtime=_lambda.Runtime.PYTHON_3_9,
@@ -195,7 +198,7 @@ class OpeningNightStack(Stack):
                     'BUCKET_NAME': opening_nights_bucket.bucket_name,
                     'CUSTOM_VAR': env_var
                 },
-                role=lambda_role
+                role=role
             )
             fn_url = function.add_function_url(
                 auth_type=_lambda.FunctionUrlAuthType.NONE,
@@ -369,22 +372,28 @@ class OpeningNightStack(Stack):
         calc_downloads_score_task = tasks.LambdaInvoke(
             self, "CalcDownloadsScoreTask",
             lambda_function=calc_downloads_score_lambda,
-            output_path="$.Payload"
+            output_path="$.Payload.Download"
         )
 
         calc_ratings_score_task = tasks.LambdaInvoke(
             self, "CalcRatingsScoreTask",
             lambda_function=calc_ratings_score_lambda,
-            output_path="$.Payload"
+            output_path="$.Payload.Rating"
         )
 
         calc_subs_score_task = tasks.LambdaInvoke(
             self, "CalcSubscriptionsScoreTask",
             lambda_function=calc_subs_score_lambda,
-            output_path="$.Payload"
+            output_path="$.Payload.Subs"
         )
 
-        feed_parallel_tasks = sfn.Parallel(self, "FeedParallelTasks")
+        feed_parallel_tasks = sfn.Parallel(self, "FeedParallelTasks",
+            result_selector={
+                "Download.$": "$[0]",
+                "Rating.$": "$[1]",
+                "Subs.$": "$[2]"
+            },
+            result_path="$.Payload")
         feed_parallel_tasks.branch(sfn.Chain.start(calc_downloads_score_task))
         feed_parallel_tasks.branch(sfn.Chain.start(calc_ratings_score_task))
         feed_parallel_tasks.branch(sfn.Chain.start(calc_subs_score_task))
@@ -405,17 +414,45 @@ class OpeningNightStack(Stack):
             comment='Determine and persist feed for user'
         )
 
+        feed_lambda_role = iam.Role(
+            self, "FeedLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        feed_lambda_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+        )
+        feed_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "states:StartExecution"
+                ],
+                resources=[opening_nights_table.table_arn,
+                           feed_table.table_arn,
+                           feed_step_function.state_machine_arn
+                        ]
+            )
+        )
+
         read_feed_sqs_lambda = create_lambda_function(
             "readFeedSqs",
             "read_feed_sqs.read",
             "lambdas/readFeedSqs",
             "",
             [],
+            feed_lambda_role,
             feed_step_function.state_machine_arn
         )
         feed_queue.grant_consume_messages(read_feed_sqs_lambda)
-        # feed_step_function.grant_start_execution(read_feed_sqs_lambda)
         read_feed_sqs_lambda.add_event_source(eventsources.SqsEventSource(feed_queue))
+        # feed_step_function.grant_start_execution(read_feed_sqs_lambda)
 
         #API Gateway
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",

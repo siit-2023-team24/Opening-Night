@@ -5,9 +5,9 @@ from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
 
-def calc_ratings_score(input):
+def calc_ratings_score(event, context):
 
-    username = input['username']
+    username = event['username']
 
     table_name = os.environ['RATINGS_TABLE_NAME']
     table = dynamodb.Table(table_name)
@@ -76,13 +76,13 @@ def calc_ratings_score(input):
         except (KeyError):
             print('username not found error (no item found)')
 
-    for d in directors.keys:
+    for d in directors.keys():
         directors[d] = sum(directors[d]) / len(directors[d])
 
-    for a in actors.keys:
+    for a in actors.keys():
         actors[a] = sum(actors[a]) / len(actors[a])
         
-    for d in genres.keys:
+    for d in genres.keys():
         genres[d] = sum(genres[d]) / len(genres[d])
 
     response = {
@@ -90,4 +90,4 @@ def calc_ratings_score(input):
             'ratings_directors': directors,
             'ratings_actors': actors
             }
-    return response
+    return {'Rating': response}
