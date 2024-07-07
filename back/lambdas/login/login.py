@@ -30,7 +30,7 @@ def login(event, context):
             'headers': {
                 'Access-Control-Allow-Origin': '*',
             },
-            'body': json.dumps('Successful login')
+            'body': json.dumps('Successful login!')
         }
     except client.exceptions.NotAuthorizedException as e:
         
@@ -39,7 +39,7 @@ def login(event, context):
             'headers': {
                 'Access-Control-Allow-Origin': '*',
             },
-            'body': json.dumps('Unauthorized: ' + str(e))
+            'body': json.dumps('Incorrect username or password.')
         }
     except client.exceptions.UserNotFoundException as e:
         
@@ -48,7 +48,7 @@ def login(event, context):
             'headers': {
                 'Access-Control-Allow-Origin': '*',
             },
-            'body': json.dumps('User not found: ' + str(e))
+            'body': json.dumps('Incorrect username or password.')
         }
     except Exception as e:
         
