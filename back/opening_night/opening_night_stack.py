@@ -75,6 +75,7 @@ class OpeningNightStack(Stack):
             ),
             read_capacity=1,
             write_capacity=1,
+            stream=dynamodb.StreamViewType.NEW_IMAGE
         )
 
         subs_table= dynamodb.Table(
@@ -157,7 +158,10 @@ class OpeningNightStack(Stack):
                     "s3:DeleteObject",
                     "ssm:GetParameter", # register, login
                     "cognito-idp:AdminConfirmSignUp", # register
-                    "cognito-idp:ListUsers" # register
+                    "cognito-idp:ListUsers", # register
+                    "sns:CreateTopic",
+                    "sns:ListTopics",
+                    "sns:Subscribe"
                 ],
                 resources=[opening_nights_table.table_arn,
                            subs_table.table_arn,
@@ -172,8 +176,36 @@ class OpeningNightStack(Stack):
             )
         )
 
+        sns_lambda_role = iam.Role(
+            self, "SNSLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        sns_lambda_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+        )
+        sns_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "sns:CreateTopic",
+                    "sns:ListTopics",
+                    "sns:Subscribe",
+                    "sns:Publish"
+                ],
+                resources=[subs_table.table_arn, "*"]
+            )
+        )
+
+
         
-        #TODO razdvojiti prava
+        #TODO razdvojiti prava, ne mora
 
 
 
@@ -241,6 +273,7 @@ class OpeningNightStack(Stack):
             "lambdas/updateSubscriptions",
             "POST",
             [],
+            role=sns_lambda_role,
             env_var=feed_queue.queue_url
           )  
 
@@ -348,6 +381,36 @@ class OpeningNightStack(Stack):
             "GET",
             []
         )
+
+        #check subs for sns
+
+        check_subscriptions_lambda = create_lambda_function(
+            "checkSubs",
+            "check_subscriptions.check",
+            "lambdas/checkSubs",
+            "",
+            [],
+            sns_lambda_role,
+            feed_queue.queue_url
+        )
+
+        db_event_source = eventsources.DynamoEventSource(
+            opening_nights_table,
+            starting_position=_lambda.StartingPosition.LATEST,
+            batch_size=1,
+            bisect_batch_on_error=True,
+            retry_attempts=0,
+            filters=[
+                eventsources.FilterCriteria.filter(
+                    patterns=[
+                        {"eventName": ["INSERT", "MODIFY"]}
+                    ]
+                )
+            ]
+        )
+
+        check_subscriptions_lambda.add_event_source(db_event_source)
+
 
         #Feed step
 
