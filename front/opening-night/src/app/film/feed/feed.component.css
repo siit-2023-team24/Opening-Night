@@ -22,3 +22,9 @@
 .item {
     margin: 0 3px;
 }
+
+.subtitle {
+    margin: 20px;
+    color: #0C4A60;
+    font-size: large;
+}
