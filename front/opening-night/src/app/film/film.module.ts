@@ -13,6 +13,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from '../shared/shared.module';
 import { RatingCardComponent } from './rating-card/rating-card.component';
+import { FeedComponent } from './feed/feed.component';
 
 
 
@@ -23,7 +24,8 @@ import { RatingCardComponent } from './rating-card/rating-card.component';
     FilmPageComponent,
     HomePageComponent,
     RatingsComponent,
-    RatingCardComponent
+    RatingCardComponent,
+    FeedComponent
   ],
   imports: [
     CommonModule,

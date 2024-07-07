@@ -1,0 +1,13 @@
+.container {
+    height: 600px;
+    width: 100%;
+    padding: 40px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.film-card {
+    display: flex;
+    justify-content: center;
+}
