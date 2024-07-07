@@ -25,6 +25,15 @@ export class FeedComponent implements OnInit {
       },
       error: (error: MessageResponse) => console.log(error.message)
     })
+
+    // this.films = [{
+    //   actors: ['Brie Larsen', 'Samuel L. Jackson'],
+    //   directors: ['ne znam'],
+    //   fileName: "captainmarvelmp4",
+    //   genres: ['drama', 'comedy', 'superhero'],
+    //   title: "Captain Marvel (2019)",
+    //   isSeries: false
+    // }]
   }
 
 }

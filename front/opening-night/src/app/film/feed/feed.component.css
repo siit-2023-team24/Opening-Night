@@ -1,5 +1,4 @@
 .container {
-    height: 600px;
     width: 100%;
     padding: 40px;
     display: flex;
@@ -10,4 +9,16 @@
 .film-card {
     display: flex;
     justify-content: center;
+    width: 300px;
+}
+
+.data {
+    margin: 10px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.item {
+    margin: 0 3px;
 }

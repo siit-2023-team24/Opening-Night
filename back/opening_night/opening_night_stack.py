@@ -26,7 +26,7 @@ class OpeningNightStack(Stack):
 
         user_roles = ['admin', 'viewer']
 
-        user_pool = cognito.UserPool(self, "Opening-Night-User-Pool",
+        user_pool = cognito.UserPool(self, "Opening-Night-Pool",
             user_pool_name="opening-night-user-pool",
             self_sign_up_enabled=True,
             sign_in_aliases=cognito.SignInAliases(
@@ -43,6 +43,9 @@ class OpeningNightStack(Stack):
                 require_symbols=True
             ),
             account_recovery=cognito.AccountRecovery.NONE,
+            custom_attributes={
+                "is_guest": cognito.StringAttribute()
+            }
         )
 
         user_pool_client = user_pool.add_client("OpeningNightUserPoolClient",
