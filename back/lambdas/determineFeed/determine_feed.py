@@ -9,6 +9,7 @@ def determine_feed(event, context):
     event_ratings = event['Rating']
     event_subs = event['Subs']
     username = event_subs['username']
+    downloaded_films = event_downloads['downloaded_films']
 
     #joining the results
     director_scores = event_ratings['ratings_directors']
@@ -56,6 +57,9 @@ def determine_feed(event, context):
     data = table.scan()
     films = data["Items"]
     for film in films:
+        if film['filmId'] in downloaded_films:
+            continue
+
         score = 0
         for genre in film['genres']:
             try:
