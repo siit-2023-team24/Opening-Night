@@ -9,8 +9,7 @@ def read(event, context):
     for record in event['Records']:
         username = record['body']
 
-        response = sfn_client.start_execution(
+        sfn_client.start_execution(
             stateMachineArn=state_machine_arn,
-            input=json.dumps(username)
+            input=json.dumps({'username': username})
         )
-        print(response)

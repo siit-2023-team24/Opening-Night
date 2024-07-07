@@ -126,7 +126,11 @@ class OpeningNightStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             block_public_access = s3.BlockPublicAccess.BLOCK_ALL
-            )           
+        )
+
+        feed_queue = sqs.Queue(
+            self, "FeedQueue",
+        )
         
         lambda_role = iam.Role(
             self, "LambdaRole",
@@ -161,7 +165,7 @@ class OpeningNightStack(Stack):
                            f"{ratings_table.table_arn}/index/username-index",
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
-                           opening_nights_bucket.bucket_arn + "/*"
+                           opening_nights_bucket.bucket_arn + "/*",
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
@@ -172,9 +176,6 @@ class OpeningNightStack(Stack):
         #TODO razdvojiti prava
 
 
-        feed_queue = sqs.Queue(
-            self, "FeedQueue",
-        )
 
         def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
             function = _lambda.Function(
@@ -239,7 +240,8 @@ class OpeningNightStack(Stack):
             "update_subscriptions.update_subs",
             "lambdas/updateSubscriptions",
             "POST",
-            []
+            [],
+            env_var=feed_queue.queue_url
           )  
 
         get_subscriptions_lambda = create_lambda_function(
@@ -463,7 +465,9 @@ class OpeningNightStack(Stack):
         )
         feed_queue.grant_consume_messages(read_feed_sqs_lambda)
         read_feed_sqs_lambda.add_event_source(eventsources.SqsEventSource(feed_queue))
-        # feed_step_function.grant_start_execution(read_feed_sqs_lambda)
+
+        feed_queue.grant_send_messages(update_subscriptions_lambda)
+        feed_queue.grant_send_messages(rate_film_lambda)
 
         #API Gateway
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
