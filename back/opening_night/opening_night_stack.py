@@ -321,7 +321,8 @@ class OpeningNightStack(Stack):
             "rate_film.rate",
             "lambdas/rateFilm",
             "POST",
-            []
+            [],
+            env_var=feed_queue.queue_url
         )
         
         login_lambda = create_lambda_function(

@@ -4,7 +4,7 @@ import boto3
 from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
-
+sqs = boto3.client('sqs')
 
 def rate(event, context):
 
@@ -28,6 +28,12 @@ def rate(event, context):
         )
         status = 200
         message = 'Rating saved'
+
+        queue_url = os.environ['CUSTOM_VAR']
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody=body['username']
+        )
 
     except BaseException as e:
         print(e)
