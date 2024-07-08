@@ -110,7 +110,7 @@ export class RegisterComponent implements OnInit {
     this.errorMessage = '';
     let user: User = this.registerForm.value;
     user.birthday = this.formatDate(this.registerForm.value.birthdayDate)
-    user.isGuest = true
+    user.isViewer = true
     console.log(user)
     this.userService.register(user).subscribe({
       next: (response: Object) => {

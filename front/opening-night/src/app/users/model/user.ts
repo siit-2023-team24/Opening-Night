@@ -5,5 +5,5 @@ export interface User {
     lastName : string,
     email: string,
     birthday: string,
-    isGuest : boolean;
+    isViewer : boolean;
 }
