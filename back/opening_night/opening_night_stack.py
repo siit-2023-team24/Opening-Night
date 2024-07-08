@@ -61,10 +61,10 @@ class OpeningNightStack(Stack):
         )
 
         opening_nights_table= dynamodb.Table(
-            self, "Opening-Night-Table",
-            table_name="opening-night-table",
+            self, "Films-Table",
+            table_name="films-table",
             partition_key=dynamodb.Attribute(
-                name="fileName",
+                name="filmId",
                 type=dynamodb.AttributeType.STRING
             ),
             read_capacity=1,
@@ -154,7 +154,7 @@ class OpeningNightStack(Stack):
                            ratings_table.table_arn,
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
-                           opening_nights_bucket.bucket_arn + "/*"
+                           opening_nights_bucket.bucket_arn + "/*",
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
                            "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
@@ -182,7 +182,7 @@ class OpeningNightStack(Stack):
                         ],
                     ),),
                 memory_size=128,
-                timeout=Duration.seconds(10),
+                timeout=Duration.seconds(60),
                 environment={
                     'TABLE_NAME': opening_nights_table.table_name,
                     'SUBS_TABLE_NAME': subs_table.table_name,
@@ -209,12 +209,25 @@ class OpeningNightStack(Stack):
             compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
         )
 
+
+        ffmpeg_layer = _lambda.LayerVersion(
+            self, 'FFmpegLayer',
+            code=_lambda.AssetCode('lambda_layers/ffmpeg_layer'),
+            compatible_runtimes=[_lambda.Runtime.PYTHON_3_9],
+            description='FFmpeg layer',
+        )
+        # trans_layer = PythonLayerVersion(
+        #     self, 'TransLambdaLayer',
+        #     entry='lambda_layers/ffmpeg_layer',
+        #     compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
+        # )
+
         upload_film_lambda = create_lambda_function(
             "uploadFilm",
             "upload_film.create",
             "lambdas/uploadFilm",
             "POST",
-            []
+            [ffmpeg_layer]
         )
 
         download_film_lambda = create_lambda_function(
@@ -281,21 +294,21 @@ class OpeningNightStack(Stack):
             []
         )
 
-        # get_series_list_lambda = create_lambda_function(
-        #     "getSeriesList",
-        #     "get_series_list.get",
-        #     "lambdas/getSeriesList",
-        #     "GET",
-        #     []
-        # )
+        get_series_list_lambda = create_lambda_function(
+            "getSeriesList",
+            "get_series_list.get",
+            "lambdas/getSeriesList",
+            "GET",
+            []
+        )
 
-        # get_episodes_by_series_lambda = create_lambda_function(
-        #     "getEpisodesBySeries",
-        #     "get_episodes_by_series.get",
-        #     "lambdas/getEpisodesBySeries",
-        #     "GET",
-        #     []
-        # )
+        get_episodes_by_series_lambda = create_lambda_function(
+            "getEpisodesBySeries",
+            "get_episodes_by_series.get",
+            "lambdas/getEpisodesBySeries",
+            "GET",
+            []
+        )
 
         get_ratings_for_film_lambda = create_lambda_function(
             "getRatingForFilm",
@@ -375,12 +388,12 @@ class OpeningNightStack(Stack):
         actors_and_directors.add_method("GET", get_actors_and_directors_integration)
 
         series_resource = films.add_resource("series")
-        # get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
-        # series_resource.add_method("GET", get_series_list_integration)
+        get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
+        series_resource.add_method("GET", get_series_list_integration)
 
         series_episodes_resource = series_resource.add_resource("{seriesName}").add_resource("episodes")
-        # get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
-        # series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
+        get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
+        series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
 
         ratings = opening_nights_api.root.add_resource("ratings")
         rate_film_integration = apigateway.LambdaIntegration(rate_film_lambda)

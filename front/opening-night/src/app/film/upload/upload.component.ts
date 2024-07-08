@@ -19,20 +19,20 @@ export class UploadComponent implements OnInit {
     directors: [],
     genres: [],
     isSeries: false,
-    file: ''
+    fileContent: ''
   };
 
   selectedFile: File | undefined;
-  seriesList: string[] = ['One piece', 'Naruto', 'Fuji'];
+  seriesList: string[] = [] //'One piece', 'Naruto', 'Fuji'];
 
-  actors: string[] = [
-    'Matt Damon', 'Leo Dicaprio', 'Jack Nicholson', 'Meryl Streep', 'Tom Hanks', 
-    'Robert De Niro', 'Al Pacino', 'Angelina Jolie', 'Brad Pitt', 'Johnny Depp', 
-    'Morgan Freeman', 'Scarlett Johansson', 'Natalie Portman', 'Jennifer Lawrence', 
-    'Denzel Washington', 'Christian Bale', 'Hugh Jackman', 'Emma Stone', 'Ryan Gosling', 
-    'Charlize Theron'
-  ];
-  directors: string[] = ['Poopy Pooppants', 'Milica Misic', 'Konjic'];
+  actors: string[] = []
+  //   'Matt Damon', 'Leo Dicaprio', 'Jack Nicholson', 'Meryl Streep', 'Tom Hanks', 
+  //   'Robert De Niro', 'Al Pacino', 'Angelina Jolie', 'Brad Pitt', 'Johnny Depp', 
+  //   'Morgan Freeman', 'Scarlett Johansson', 'Natalie Portman', 'Jennifer Lawrence', 
+  //   'Denzel Washington', 'Christian Bale', 'Hugh Jackman', 'Emma Stone', 'Ryan Gosling', 
+  //   'Charlize Theron'
+  // ];
+  directors: string[] = [] // 'Poopy Pooppants', 'Milica Misic', 'Konjic'];
   genres = Object.values(Genre)
   newActor = '';
   newDirector = '';
@@ -41,8 +41,8 @@ export class UploadComponent implements OnInit {
   constructor(private filmService: FilmService) {}
 
   ngOnInit(): void {
-    //this.getSeriesList();
-    //this.getActorsAndDirectors();
+    this.getSeriesList();
+    this.getActorsAndDirectors();
   }
 
   getActorsAndDirectors() {
@@ -50,6 +50,8 @@ export class UploadComponent implements OnInit {
       next: (data: ActorsAndDirectorsDTO) => {
         this.directors = data.directors;
         this.directors.sort()
+        console.log("dir")
+        console.log(this.directors)
         this.actors = data.actors
         this.actors.sort()
       }
@@ -65,9 +67,12 @@ export class UploadComponent implements OnInit {
   getSeriesList() {
     this.filmService.getSeriesList().subscribe(response => {
       this.seriesList = response;
+      this.seriesList.sort();
     }, error => {
       console.log('Error getting the series list', error);
     });
+
+    console.log(this.seriesList)
   }
 
   onFileChange(event: Event): void {
@@ -75,7 +80,7 @@ export class UploadComponent implements OnInit {
     if (inputElement.files && inputElement.files.length) {
       this.selectedFile = inputElement.files[0];
       this.filmDTO.fileName = this.selectedFile.name;
-      this.convertFileToBase64(this.selectedFile)
+      this.convertFileToBase64(this.selectedFile);
     } 
     console.log(this.selectedFile);
   }
@@ -83,7 +88,8 @@ export class UploadComponent implements OnInit {
   convertFileToBase64(file: File): void {
     const reader = new FileReader();
     reader.onload = () => {
-      this.filmDTO.file = reader.result as string;
+        const base64String = (reader.result as string).split(',')[1]; // Remove the prefix
+        this.filmDTO.fileContent = base64String;
     };
     reader.readAsDataURL(file);
   }
@@ -113,15 +119,15 @@ export class UploadComponent implements OnInit {
   }
 
   onSubmit() {
-    console.log(this.filmDTO)
-    console.log(this.filmDTO.series)
-    console.log(this.filmDTO.season)
-    console.log(this.filmDTO.episode)
-    // this.filmService.upload(this.filmDTO).subscribe(response => {
-    //   console.log('Upload successful', response);
-    // }, error => {
-    //   console.log('Upload failed', error);
-    // });
+    // console.log(this.filmDTO)
+    // console.log(this.filmDTO.series)
+    // console.log(this.filmDTO.season)
+    // console.log(this.filmDTO.episode)
+    this.filmService.upload(this.filmDTO).subscribe(response => {
+      console.log('Upload successful', response);
+    }, error => {
+      console.log('Upload failed', error);
+    });
   }
 
 }

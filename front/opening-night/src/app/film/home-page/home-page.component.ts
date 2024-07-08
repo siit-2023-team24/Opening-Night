@@ -20,25 +20,25 @@ export class HomePageComponent implements OnInit{
   }
 
   fetchFilms(): void {
-    // this.filmService.getAllFilms().subscribe(
-    //   (films: FilmCardDTO[]) => {
-    //     this.films = films;
-    //   },
-    //   error => {
-    //     console.error('Error fetching films:', error);
-    //   }
-    // );
+    this.filmService.getAllFilms().subscribe(
+      (films: FilmCardDTO[]) => {
+        this.films = films;
+      },
+      error => {
+        console.error('Error fetching films:', error);
+      }
+    );
 
-    const filmDTO = {
-      id: 1,
-      title: 'fasdfasdfas',
-      isSeries: true,
-      series: 'Naruto',
-      season: 4,
-      episode: 1
-    };
+    // const filmDTO = {
+    //   id: 1,
+    //   title: 'fasdfasdfas',
+    //   isSeries: true,
+    //   series: 'Naruto',
+    //   season: 4,
+    //   episode: 1
+    // };
 
-    this.films.push(filmDTO);
+    // this.films.push(filmDTO);
   }
 
   search(): void {}

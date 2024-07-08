@@ -49,6 +49,9 @@ def register(event, context):
         )
         return {
             'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+            },
             'body': json.dumps('User registered successfully')
         }
     except client.exceptions.UsernameExistsException as e:
