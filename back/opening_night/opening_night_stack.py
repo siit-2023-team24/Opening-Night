@@ -70,12 +70,28 @@ class OpeningNightStack(Stack):
             self, "Opening-Night-Table",
             table_name="opening-night-table",
             partition_key=dynamodb.Attribute(
-                name="fileName",
+                name="filmId",
                 type=dynamodb.AttributeType.STRING
             ),
             read_capacity=1,
             write_capacity=1,
             stream=dynamodb.StreamViewType.NEW_IMAGE
+        )
+
+        search_table = dynamodb.Table(
+            self, "Search-Table",
+            table_name="search-table",
+            partition_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name='data', type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1
+        )
+
+        search_table.add_global_secondary_index(
+            index_name="search-index",
+            partition_key=dynamodb.Attribute(name='data', type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
+            projection_type=dynamodb.ProjectionType.ALL
         )
 
         subs_table= dynamodb.Table(
@@ -164,6 +180,8 @@ class OpeningNightStack(Stack):
                     "sns:Subscribe"
                 ],
                 resources=[opening_nights_table.table_arn,
+                           search_table.table_arn,
+                           f"{search_table.table_arn}/index/search-index",
                            subs_table.table_arn,
                            ratings_table.table_arn,
                            f"{ratings_table.table_arn}/index/username-index",
@@ -380,6 +398,15 @@ class OpeningNightStack(Stack):
             "lambdas/getFeed",
             "GET",
             []
+        )
+
+        search_lambda = create_lambda_function(
+            "search",
+            "search.search",
+            "lambdas/search",
+            "GET",
+            [],
+            env_var=search_table.table_name
         )
 
         #check subs for sns
@@ -607,3 +634,6 @@ class OpeningNightStack(Stack):
         get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
         feed.add_method("GET", get_feed_integration)
 
+        search = opening_nights_api.root.add_resource("search")
+        search_integration = apigateway.LambdaIntegration(search_lambda)
+        search.add_method("GET", search_integration) 

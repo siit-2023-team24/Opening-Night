@@ -51,4 +51,7 @@ export class FilmService {
     return this.http.get<FilmFeedDTO[]>(environment.apiHost + '/feed/' + username);
   }
 
+  search(input: string): Observable<FilmCardDTO[]> {
+    return this.http.get<FilmCardDTO[]>(environment.apiHost + '/search')
+  }
 }
