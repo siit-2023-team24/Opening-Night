@@ -8,6 +8,10 @@ from aws_cdk import (
     BundlingOptions,
     aws_s3 as s3,
     RemovalPolicy,
+    aws_sqs as sqs,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
+    aws_lambda_event_sources as eventsources,
     aws_cognito as cognito,
     aws_ssm as ssm,
     aws_sqs as sqs,
@@ -25,7 +29,7 @@ class OpeningNightStack(Stack):
 
         user_roles = ['admin', 'viewer']
 
-        user_pool = cognito.UserPool(self, "Opening-Night-User-Pool",
+        user_pool = cognito.UserPool(self, "Opening-Night-Pool",
             user_pool_name="opening-night-user-pool",
             self_sign_up_enabled=True,
             sign_in_aliases=cognito.SignInAliases(
@@ -42,6 +46,9 @@ class OpeningNightStack(Stack):
                 require_symbols=True
             ),
             account_recovery=cognito.AccountRecovery.NONE,
+            custom_attributes={
+                "is_viewer": cognito.BooleanAttribute()
+            }
         )
 
         user_pool_client = user_pool.add_client("OpeningNightUserPoolClient",
@@ -99,7 +106,7 @@ class OpeningNightStack(Stack):
             sort_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
             projection_type=dynamodb.ProjectionType.ALL
         )
-  
+
         downloads_log_table = dynamodb.Table(
             self, "Downloads-Log-Table",
             table_name="downloads-log-table",
@@ -122,7 +129,11 @@ class OpeningNightStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             block_public_access = s3.BlockPublicAccess.BLOCK_ALL
-            )           
+        )
+
+        feed_queue = sqs.Queue(
+            self, "FeedQueue",
+        )
         
         lambda_role = iam.Role(
             self, "LambdaRole",
@@ -154,6 +165,7 @@ class OpeningNightStack(Stack):
                 resources=[opening_nights_table.table_arn,
                            subs_table.table_arn,
                            ratings_table.table_arn,
+                           f"{ratings_table.table_arn}/index/username-index",
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
                            opening_nights_bucket.bucket_arn + "/*",
@@ -162,12 +174,11 @@ class OpeningNightStack(Stack):
                            f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
             )
         )
+
+        
         #TODO razdvojiti prava
 
 
-        feed_queue = sqs.Queue(
-            self, "FeedQueue",
-        )
 
         def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
             function = _lambda.Function(
@@ -181,7 +192,7 @@ class OpeningNightStack(Stack):
                         command=[
                             "bash", "-c",
                             "pip install --no-cache -r requirements.txt -t /asset-output && cp -r . /asset-output"
-                        ],
+                        ]
                     ),),
                 memory_size=128,
                 timeout=Duration.seconds(60),
@@ -212,12 +223,46 @@ class OpeningNightStack(Stack):
         )
 
 
+
         ffmpeg_layer = _lambda.LayerVersion(
             self, 'FFmpegLayer',
             code=_lambda.AssetCode('lambda_layers/ffmpeg_layer'),
             compatible_runtimes=[_lambda.Runtime.PYTHON_3_9],
             description='FFmpeg layer',
         )
+        
+        authorize_viewer_lambda = create_lambda_function(
+            "authorizeViewer",
+            "authorize_viewer.authorize",
+            "lambdas/authorization",
+            "GET",
+            []
+        )
+
+        authorize_admin_lambda = create_lambda_function(
+            "authorizeAdmin",
+            "authorize_admin.authorize",
+            "lambdas/authorization",
+            "GET",
+            []
+        )
+
+        # authorizer = apigateway.CognitoUserPoolsAuthorizer(self, "CognitoAuthorizer",
+        #     cognito_user_pools=[user_pool]
+        # )
+
+        # viewer_authorizer = apigateway.RequestAuthorizer(self, "ViewerAuthorizer",
+        #     handler = authorize_viewer_lambda,
+        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
+        #     results_cache_ttl=Duration.seconds(0)
+        # )
+
+        # admin_authorizer = apigateway.RequestAuthorizer(self, "AdminAuthorizer",
+        #     handler = authorize_admin_lambda,
+        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
+        #     results_cache_ttl=Duration.seconds(0)
+        # )
+        
         # trans_layer = PythonLayerVersion(
         #     self, 'TransLambdaLayer',
         #     entry='lambda_layers/ffmpeg_layer',
@@ -237,7 +282,8 @@ class OpeningNightStack(Stack):
             "update_subscriptions.update_subs",
             "lambdas/updateSubscriptions",
             "POST",
-            []
+            [],
+            env_var=feed_queue.queue_url
           )  
 
         get_subscriptions_lambda = create_lambda_function(
@@ -317,9 +363,10 @@ class OpeningNightStack(Stack):
             "rate_film.rate",
             "lambdas/rateFilm",
             "POST",
-            []
+            [],
+            env_var=feed_queue.queue_url
         )
-
+        
         login_lambda = create_lambda_function(
             "login",
             "login.login",
@@ -438,6 +485,136 @@ class OpeningNightStack(Stack):
             upload_step_function.state_machine_arn
         )
 
+        get_feed_lambda = create_lambda_function(
+            "getFeed",
+            "get_feed.get_feed",
+            "lambdas/getFeed",
+            "GET",
+            []
+        )
+
+        #Feed step
+
+        calc_downloads_score_lambda = create_lambda_function(
+            "calcDownloadsScore",
+            "calc_downloads_score.calc_downloads_score",
+            "lambdas/calcDownloadsScore",
+            "",
+            []
+        )
+
+        calc_ratings_score_lambda = create_lambda_function(
+            "calcRatingsScore",
+            "calc_ratings_score.calc_ratings_score",
+            "lambdas/calcRatingsScore",
+            "",
+            []
+        )
+
+        calc_subs_score_lambda = create_lambda_function(
+            "calcSubscriptionsScore",
+            "calc_subscriptions_score.calc_subs_score",
+            "lambdas/calcSubscriptionsScore",
+            "",
+            []
+        )
+
+        determine_feed_lambda = create_lambda_function(
+            "determineFeed",
+            "determine_feed.determine_feed",
+            "lambdas/determineFeed",
+            "",
+            []
+        )
+
+        calc_downloads_score_task = tasks.LambdaInvoke(
+            self, "CalcDownloadsScoreTask",
+            lambda_function=calc_downloads_score_lambda,
+            output_path="$.Payload.Download"
+        )
+
+        calc_ratings_score_task = tasks.LambdaInvoke(
+            self, "CalcRatingsScoreTask",
+            lambda_function=calc_ratings_score_lambda,
+            output_path="$.Payload.Rating"
+        )
+
+        calc_subs_score_task = tasks.LambdaInvoke(
+            self, "CalcSubscriptionsScoreTask",
+            lambda_function=calc_subs_score_lambda,
+            output_path="$.Payload.Subs"
+        )
+
+        feed_parallel_tasks = sfn.Parallel(self, "FeedParallelTasks",
+            result_selector={
+                "Download.$": "$[0]",
+                "Rating.$": "$[1]",
+                "Subs.$": "$[2]"
+            },
+            result_path="$.Payload")
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_downloads_score_task))
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_ratings_score_task))
+        feed_parallel_tasks.branch(sfn.Chain.start(calc_subs_score_task))
+
+        determine_feed_task = tasks.LambdaInvoke(
+            self, "DetermineFeedTask",
+            lambda_function=determine_feed_lambda,
+            input_path="$.Payload"
+        )
+
+        feed_parallel_tasks.next(determine_feed_task)
+
+        feed_definition = feed_parallel_tasks
+
+        feed_step_function = sfn.StateMachine(
+            self, "FeedStateMashine",
+            definition_body=sfn.DefinitionBody.from_chainable(feed_definition),
+            comment='Determine and persist feed for user'
+        )
+
+        feed_lambda_role = iam.Role(
+            self, "FeedLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        feed_lambda_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+        )
+        feed_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "states:StartExecution"
+                ],
+                resources=[opening_nights_table.table_arn,
+                           feed_table.table_arn,
+                           feed_step_function.state_machine_arn
+                        ]
+            )
+        )
+
+        read_feed_sqs_lambda = create_lambda_function(
+            "readFeedSqs",
+            "read_feed_sqs.read",
+            "lambdas/readFeedSqs",
+            "",
+            [],
+            feed_lambda_role,
+            feed_step_function.state_machine_arn
+        )
+        feed_queue.grant_consume_messages(read_feed_sqs_lambda)
+        read_feed_sqs_lambda.add_event_source(eventsources.SqsEventSource(feed_queue))
+
+        feed_queue.grant_send_messages(update_subscriptions_lambda)
+        feed_queue.grant_send_messages(rate_film_lambda)
+
+        #API Gateway
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
             default_cors_preflight_options={
                 "allow_origins": apigateway.Cors.ALL_ORIGINS,
@@ -507,4 +684,7 @@ class OpeningNightStack(Stack):
         register_integration = apigateway.LambdaIntegration(register_lambda)
         register.add_method("POST", register_integration)
 
+        feed = opening_nights_api.root.add_resource("feed").add_resource("{username}")
+        get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
+        feed.add_method("GET", get_feed_integration)
 

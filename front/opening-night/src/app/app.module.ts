@@ -9,6 +9,9 @@ import { MaterialModule } from './material/material.module';
 import { SubsModule } from './subs/subs.module';
 import { SharedModule } from './shared/shared.module';
 import { FilmModule } from './film/film.module';
+import { UsersModule } from './users/users.module';
+import { Interceptor } from './auth/interceptor';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -22,9 +25,16 @@ import { FilmModule } from './film/film.module';
     MaterialModule,
     SubsModule,
     SharedModule,
-    FilmModule
+    FilmModule,
+    UsersModule
   ],
-  providers: [],
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: Interceptor,
+      multi: true,
+    },
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

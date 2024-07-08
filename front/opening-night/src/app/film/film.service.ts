@@ -6,6 +6,7 @@ import { UploadFilmDTO } from './model/upload-film';
 import { ActorsAndDirectorsDTO } from '../shared/actorsAndDirectors';
 import { SeriesEpisodeDTO } from './model/series-episode';
 import { FilmCardDTO } from './model/film-card';
+import { FilmFeedDTO } from './model/film_feed';
 
 @Injectable({
   providedIn: 'root'
@@ -44,6 +45,10 @@ export class FilmService {
 
   getAllFilms(): Observable<FilmCardDTO[]> {
     return this.http.get<FilmCardDTO[]>(environment.apiHost + '/films');
+  }
+
+  getFeed(username: string): Observable<FilmFeedDTO[]> {
+    return this.http.get<FilmFeedDTO[]>(environment.apiHost + '/feed/' + username);
   }
 
 }

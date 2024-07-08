@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FilmCardDTO } from '../model/film-card';
 import { FilmService } from '../film.service';
 import { Router } from '@angular/router';
+import { AuthService } from 'src/app/auth/auth.service';
 
 @Component({
   selector: 'app-home-page',
@@ -13,7 +14,7 @@ export class HomePageComponent implements OnInit{
   films: FilmCardDTO[] = [];
   searchTerm: string = '';
 
-  constructor(private filmService: FilmService, private router: Router) { }
+  constructor(private filmService: FilmService, private router: Router, private authService: AuthService) { }
 
   ngOnInit(): void {
     this.fetchFilms();

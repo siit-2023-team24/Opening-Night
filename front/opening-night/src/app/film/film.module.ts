@@ -7,12 +7,12 @@ import { UpdateComponent } from './update/update.component';
 import { FilmPageComponent } from './film-page/film-page.component';
 import { HomePageComponent } from './home-page/home-page.component';
 import { AppRoutingModule } from '../app-routing.module';
-import { FilmComponent } from './film/film.component';
 import { RatingsComponent } from './ratings/ratings.component';
 import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from '../shared/shared.module';
 import { RatingCardComponent } from './rating-card/rating-card.component';
+import { FeedComponent } from './feed/feed.component';
 
 
 
@@ -22,9 +22,9 @@ import { RatingCardComponent } from './rating-card/rating-card.component';
     UpdateComponent,
     FilmPageComponent,
     HomePageComponent,
-    FilmComponent,
     RatingsComponent,
-    RatingCardComponent
+    RatingCardComponent,
+    FeedComponent
   ],
   imports: [
     CommonModule,
@@ -37,8 +37,6 @@ import { RatingCardComponent } from './rating-card/rating-card.component';
     SharedModule
   ],
   exports: [
-    FilmComponent,
-    RatingsComponent
   ]
 })
 export class FilmModule { }

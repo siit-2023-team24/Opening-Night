@@ -18,14 +18,9 @@ def get_ratings_for_film(event, context):
         items = table.query(
             KeyConditionExpression=boto3.dynamodb.conditions.Key('filmId').eq(filmId)
         )
-
-        # response = table.query(
-        # IndexName='author_id_timestamp-index',
-        # KeyConditionExpression=boto3.dynamodb.conditions.Key('author_id').eq('your_author_id')
-        # )
-
         status = 200
         body = items['Items']
+        body = [{'username': r['username'], 'timestamp': r['timestamp'], 'stars': r['stars']} for r in items]
 
     except BaseException as e:
         print(e)
