@@ -28,12 +28,12 @@ export class AuthService {
 
   getRole() : string {
     if(!this.isLoggedIn()) return "none";
-    if (this.helper.decodeToken(localStorage.getItem('idToken') || '')['custom:is_viewer'] == "True") return "viewer";
+    if (this.helper.decodeToken(localStorage.getItem('idToken') || '')['custom:is_viewer'].toLowerCase() == "true") return "viewer";
     return "admin";
   }
 
   isLoggedIn(): boolean {
-    return localStorage.getItem('idToken')!=null;
+    return (localStorage.getItem('idToken') || null)!=null;
   }
 
   logout(): void {

@@ -1,9 +1,9 @@
 import boto3
 import json
 from datetime import datetime
+import os
 
 client = boto3.client('cognito-idp')
-ssm = boto3.client('ssm')
 
 def register(event, context):
     body = json.loads(event['body'])
@@ -16,15 +16,8 @@ def register(event, context):
     password = body['password']
     is_viewer = body['isViewer']
 
-    response = ssm.get_parameter(
-        Name='client_id'
-    )
-    client_id = response['Parameter']['Value']
-
-    response = ssm.get_parameter(
-        Name='pool_id'
-    )
-    pool_id = response['Parameter']['Value']
+    client_id = os.environ['CLIENT_ID']
+    pool_id = os.environ['POOL_ID']
 
     if not is_unique(email, pool_id):
         return {

@@ -33,7 +33,8 @@ export class LoginComponent {
     this.userService.login(account).subscribe({
       next: (response: Tokens) => {
         this.authService.login(response);
-        this.router.navigate(['home'])
+        console.log(this.authService.getUsername())
+        this.router.navigate(['register'])
       },
       error: (error) => {
         console.error('Login error:', error.error);

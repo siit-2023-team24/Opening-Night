@@ -1,38 +1,34 @@
 import { Component } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { Event, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { AuthService } from 'src/app/auth/auth.service';
 
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
-  styleUrls: ['./navbar.component.css']
+  styleUrls: ['./navbar.component.css', "../../../styles.css"]
 })
 export class NavbarComponent {
 
-  role: string = "USER";
+  role: string = "none";
   username: string = "";
-  constructor(private router: Router) {
+  constructor(private router: Router, private authService: AuthService) {
   }
 
 
   ngOnInit(): void {
 
-    // if (this.authService.isLoggedIn()) {
-    // }
-    // else {
-    //   this.role = 'NO_USER';
-    // }
+    this.role = this.authService.getRole()
 
-    // this.router.events.pipe(
-    //   filter((event: Event): event is NavigationEnd => event instanceof NavigationEnd)
-    // ).subscribe((event: NavigationEnd) => {
-    //   this.ngOnInit();
-    // });
+    this.router.events.pipe(
+      filter((event: Event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.ngOnInit();
+    });
   }
 
   logout() {
-    // localStorage.removeItem('user');
-    // this.router.navigate(['login']);
-
+    this.authService.logout();
+    this.router.navigate(['login']);
   }
 }

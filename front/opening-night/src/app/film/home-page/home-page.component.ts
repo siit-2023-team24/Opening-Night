@@ -17,6 +17,7 @@ export class HomePageComponent implements OnInit{
   constructor(private filmService: FilmService, private router: Router, private authService: AuthService) { }
 
   ngOnInit(): void {
+    if(!this.authService.isLoggedIn()) this.router.navigate(['login']);
     this.fetchFilms();
   }
 
