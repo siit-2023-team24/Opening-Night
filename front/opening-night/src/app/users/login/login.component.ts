@@ -3,7 +3,8 @@ import { UserService } from '../user.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Account } from '../model/account';
-import { User } from '../model/user';
+import { AuthService } from 'src/app/auth/auth.service';
+import { Tokens } from '../model/tokens';
 
 @Component({
   selector: 'app-login',
@@ -14,7 +15,7 @@ export class LoginComponent {
   loginForm : FormGroup;
   errorMessage : string = '';
 
-  constructor(private formBuilder : FormBuilder, private userService: UserService, private router: Router) {
+  constructor(private formBuilder : FormBuilder, private userService: UserService, private router: Router, private authService: AuthService) {
     this.loginForm = this.formBuilder.group({
       username : ['', Validators.required],
       password : ['', Validators.required]
@@ -30,15 +31,9 @@ export class LoginComponent {
     const account : Account = this.loginForm.value;
 
     this.userService.login(account).subscribe({
-      next: (response: User) => {
-        // localStorage.setItem('user', response.accessToken);
-        // this.socketService.openSocket();
-        
-        // const helper = new JwtHelperService();
-        // console.log(helper.decodeToken(response.accessToken));
-        
+      next: (response: Tokens) => {
+        this.authService.login(response);
         this.router.navigate(['home'])
-        console.log("Success!")
       },
       error: (error) => {
         console.error('Login error:', error.error);

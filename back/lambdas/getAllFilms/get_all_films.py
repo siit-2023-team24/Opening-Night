@@ -6,10 +6,10 @@ dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
 table = dynamodb.Table(table_name)
 
-def get_all_movies(event, context):
+def get(event, context):
     try:
         response = table.scan(
-            ProjectionExpression="id, title, isSeries, series, season, episode"
+            ProjectionExpression="filmId, title, isSeries, series, season, episode"
         )
         items = response.get('Items', [])
 

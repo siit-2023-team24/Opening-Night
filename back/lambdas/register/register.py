@@ -14,7 +14,7 @@ def register(event, context):
     username = body['username']
     email = body['email']
     password = body['password']
-    is_guest = body['isGuest']
+    is_viewer = body['isViewer']
 
     response = ssm.get_parameter(
         Name='client_id'
@@ -45,7 +45,7 @@ def register(event, context):
                 {'Name': 'family_name', 'Value': last_name},
                 {'Name': 'birthdate', 'Value': birthday},
                 {'Name': 'email', 'Value': email},
-                {'Name': 'custom:is_guest', 'Value': str(is_guest)}
+                {'Name': 'custom:is_viewer', 'Value': str(is_viewer).lower()}
             ]
         )
         client.admin_confirm_sign_up(

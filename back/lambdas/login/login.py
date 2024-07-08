@@ -25,12 +25,20 @@ def login(event, context):
             }
         )
 
+        id_token = response['AuthenticationResult']['IdToken']
+        access_token = response['AuthenticationResult']['AccessToken']
+        refresh_token = response['AuthenticationResult']['RefreshToken']
+
         return {
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
             },
-            'body': json.dumps('Successful login!')
+            'body': json.dumps({
+                'idToken': id_token,
+                'accessToken': access_token,
+                'refreshToken': refresh_token
+            })
         }
     except client.exceptions.NotAuthorizedException as e:
         
