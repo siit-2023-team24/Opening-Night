@@ -56,6 +56,10 @@ export class FilmService {
     return this.http.get<FilmCardDTO[]>(environment.apiHost + '/search/' + input)
   }
 
+  searchFilter(input: string): Observable<FilmCardDTO[]> {
+    return this.http.get<FilmCardDTO[]>(environment.apiHost + '/search-filter/' + input)
+  }
+
   delete(filmId: string): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(environment.apiHost + '/films/' + filmId)
   }

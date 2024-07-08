@@ -21,6 +21,7 @@ def get(event, context):
             'body': json.dumps(items)
         }
     except Exception as e:
+        print(e)
         return {
             'statusCode': 500,
             'headers': {

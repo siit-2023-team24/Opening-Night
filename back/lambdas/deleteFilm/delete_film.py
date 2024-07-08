@@ -48,11 +48,6 @@ def remove_from_search_table(filmId):
 
 def remove_from_bucket(filmId):
     bucket_name = os.environ['BUCKET_NAME']
-
-
-    #TODO kako se zovu fajlovi
-
-
     files = [
         {'Key': filmId},
         {'Key': filmId + '_360p'},

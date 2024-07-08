@@ -56,6 +56,7 @@ def update_subs(event, context):
         }
 
 def subscribe(email, topic_name):
+    topic_name = topic_name.replace(' ', '_')
     response = sns.create_topic(Name=topic_name)
     topic_arn = response['TopicArn']
 

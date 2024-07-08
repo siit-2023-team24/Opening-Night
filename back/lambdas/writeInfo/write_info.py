@@ -28,6 +28,28 @@ def create(event, context):
             }
     )
 
+    table_name = os.environ['SEARCH_TABLE_NAME']
+    table = dynamodb.Table(table_name)
+
+    genres = ""
+    for g in body['genres']:
+        genres += g + ','
+    directors = ""
+    for d in body['directors']:
+        directors += d + ','
+    actors = ''
+    for a in body['actors']:
+        actors += a + ','
+
+    data = body['title'] + '-' + genres[:-1] + '-' + directors[:-1] + '-' + actors[:-1]
+
+    table.put_item(
+        Item = {
+            'filmId': film_id,
+            'data': data
+        }
+    )
+
     return { 
             'fileContent': body['fileContent'],
             'filmId': film_id,

@@ -46,7 +46,7 @@ class OpeningNightStack(Stack):
             ),
             account_recovery=cognito.AccountRecovery.NONE,
             custom_attributes={
-                "is_viewer": cognito.BooleanAttribute()
+                "is_viewer": cognito.StringAttribute()
             }
         )
 
@@ -548,6 +548,14 @@ class OpeningNightStack(Stack):
             env_var=search_table.table_name
         )
 
+        search_filter_lambda = create_lambda_function(
+            "searchFilter",
+            "search_filter.search_filter",
+            "lambdas/search",
+            "GET",
+            []
+        )
+
         delete_lambda = create_lambda_function(
             "deleteFilm",
             "delete_film.delete",
@@ -575,7 +583,8 @@ class OpeningNightStack(Stack):
             batch_size=1,
             bisect_batch_on_error=True,
             retry_attempts=0,
-            filters=[_lambda.FilterCriteria.filter({"event_name": _lambda.FilterRule.not_equals("DELETE")})])
+            # filters=[_lambda.FilterCriteria.filter({"event_name": _lambda.FilterRule.not_equals("DELETE")})]
+         )
         check_subscriptions_lambda.add_event_source(db_event_source)
 
 
@@ -780,3 +789,7 @@ class OpeningNightStack(Stack):
         search = opening_nights_api.root.add_resource("search").add_resource("{input}")
         search_integration = apigateway.LambdaIntegration(search_lambda)
         search.add_method("GET", search_integration) 
+
+        search_filter = opening_nights_api.root.add_resource("search-filter").add_resource("{input}")
+        search_filter_integration = apigateway.LambdaIntegration(search_filter_lambda)
+        search_filter.add_method("GET", search_filter_integration) 

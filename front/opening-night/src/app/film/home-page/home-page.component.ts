@@ -70,9 +70,9 @@ export class HomePageComponent implements OnInit{
 
   filterSearch(): void {
     let data = this.filterForm.value;
-    let input = data.title + '|' + data.genres + '|' + data.directors + '|' + data.actors;
+    let input = (data.title || '') + '-' + (data.genres || '') + '-' + (data.directors || '') + '-' + (data.actors || '');
     console.log(input);
-    this.filmService.search(input).subscribe({
+    this.filmService.searchFilter(input).subscribe({
       next: (data: FilmCardDTO[]) => {
         this.films = data;
       },
