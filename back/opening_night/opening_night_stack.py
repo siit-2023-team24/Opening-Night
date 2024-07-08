@@ -44,7 +44,7 @@ class OpeningNightStack(Stack):
             ),
             account_recovery=cognito.AccountRecovery.NONE,
             custom_attributes={
-                "is_guest": cognito.StringAttribute()
+                "is_viewer": cognito.BooleanAttribute()
             }
         )
 
@@ -67,10 +67,10 @@ class OpeningNightStack(Stack):
         )
 
         opening_nights_table= dynamodb.Table(
-            self, "Opening-Night-Table",
-            table_name="opening-night-table",
+            self, "Films-Table",
+            table_name="films-table",
             partition_key=dynamodb.Attribute(
-                name="fileName",
+                name="filmId",
                 type=dynamodb.AttributeType.STRING
             ),
             read_capacity=1,
@@ -189,7 +189,7 @@ class OpeningNightStack(Stack):
                         command=[
                             "bash", "-c",
                             "pip install --no-cache -r requirements.txt -t /asset-output && cp -r . /asset-output"
-                        ],
+                        ]
                     ),),
                 memory_size=128,
                 timeout=Duration.seconds(10),
@@ -218,6 +218,38 @@ class OpeningNightStack(Stack):
             entry='libs',
             compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
         )
+
+        authorize_viewer_lambda = create_lambda_function(
+            "authorizeViewer",
+            "authorize_viewer.authorize",
+            "lambdas/authorization",
+            "GET",
+            []
+        )
+
+        authorize_admin_lambda = create_lambda_function(
+            "authorizeAdmin",
+            "authorize_admin.authorize",
+            "lambdas/authorization",
+            "GET",
+            []
+        )
+
+        # authorizer = apigateway.CognitoUserPoolsAuthorizer(self, "CognitoAuthorizer",
+        #     cognito_user_pools=[user_pool]
+        # )
+
+        # viewer_authorizer = apigateway.RequestAuthorizer(self, "ViewerAuthorizer",
+        #     handler = authorize_viewer_lambda,
+        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
+        #     results_cache_ttl=Duration.seconds(0)
+        # )
+
+        # admin_authorizer = apigateway.RequestAuthorizer(self, "AdminAuthorizer",
+        #     handler = authorize_admin_lambda,
+        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
+        #     results_cache_ttl=Duration.seconds(0)
+        # )
 
         upload_film_lambda = create_lambda_function(
             "uploadFilm",
