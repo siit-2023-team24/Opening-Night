@@ -1,5 +1,5 @@
 export interface FilmCardDTO {
-    id: number,
+    filmId: string,
     title: string,
     isSeries: boolean,
     series?: string,

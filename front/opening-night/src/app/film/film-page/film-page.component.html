@@ -16,7 +16,7 @@
   <!-- Series Section -->
   <div *ngIf="filmDTO.isSeries">
     <h3>{{ filmDTO.series }} - Season {{ filmDTO.season }} Episode {{ filmDTO.episode }}</h3>
-    <video controls [src]="filmDTO.file"></video>
+    <video controls [src]="filmDTO.fileContent"></video>
 
     <!-- Episodes Grid -->
     <div class="episodes-grid">
@@ -24,14 +24,14 @@
         <h4>Season {{ season }}</h4>
         <div *ngFor="let ep of episodes">
           <div *ngIf="ep.seasonNumber === season">
-            <button color="episode" mat-raised-button (click)="loadEpisode(ep.id)">Episode {{ ep.episodeNumber }}</button>
+            <button color="episode" mat-raised-button (click)="loadEpisode(ep.filmId)">Episode {{ ep.episodeNumber }}</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="full-width add-file-button">
+  <!-- <div class="full-width add-file-button">
     <input type="file" (change)="onFileChange($event)">
-  </div>
+  </div> -->
 </div>

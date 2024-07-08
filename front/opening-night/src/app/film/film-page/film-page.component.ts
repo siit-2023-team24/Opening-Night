@@ -19,11 +19,11 @@ export class FilmPageComponent {
     directors: [],
     genres: [],
     isSeries: false,
-    file: ''
+    fileContent: ''
   };
 
   filmFile: File | undefined;
-  filmId: number = 0; //TODO: dobijace id iz roditeljske komponente tj. str koja prikazuje sve filmove
+  filmId: string = ''; //TODO: dobijace id iz roditeljske komponente tj. str koja prikazuje sve filmove
   seasons: number[] = []
   episodes: SeriesEpisodeDTO[] = []
 
@@ -36,7 +36,6 @@ export class FilmPageComponent {
   ) {}
 
   ngOnInit(): void {
-    // Fetch the film ID from route params
     this.route.params.subscribe(params => {
       this.filmId = params['id'];
       this.fetchFilmData();
@@ -44,36 +43,38 @@ export class FilmPageComponent {
   }
 
   fetchFilmData(): void {
-    // this.filmService.getFilmById(this.filmId).subscribe(response => {
-    //   this.filmDTO = response;
-    //   if (this.filmDTO.isSeries && this.filmDTO.series) {
-    //     this.getSeriesSeasons(this.filmDTO.series);
-    //   }
-    // }, error => {
-    //   console.log('Error fetching film data', error);
-    // });
+    this.filmService.getFilmById(this.filmId).subscribe(response => {
+      this.filmDTO = response;
+      console.log(this.filmDTO);
+      this.convertBase64ToVideo();
+      if (this.filmDTO.isSeries && this.filmDTO.series) {
+        this.getSeriesEpisodes();
+      }
+    }, error => {
+      console.log('Error fetching film data', error);
+    });
 
-    this.filmDTO = {
-      id: this.filmId,
-      fileName: 'asdfasdf',
-      title: 'fasdfasdfas',
-      description: 'fadsfasdfasd',
-      actors: ['Christian Bale', 'Hugh Jackman', 'Emma Stone'],
-      directors: ['Poopy Pooppants'],
-      genres: ['comedy'],
-      isSeries: false,
-      series: 'Naruto',
-      season: 4,
-      episode: 1,
-      file: 'sadasdadasd'
-    };
+    // this.filmDTO = {
+    //   id: this.filmId,
+    //   fileName: 'asdfasdf',
+    //   title: 'fasdfasdfas',
+    //   description: 'fadsfasdfasd',
+    //   actors: ['Christian Bale', 'Hugh Jackman', 'Emma Stone'],
+    //   directors: ['Poopy Pooppants'],
+    //   genres: ['comedy'],
+    //   isSeries: false,
+    //   series: 'Naruto',
+    //   season: 4,
+    //   episode: 1,
+    //   file: 'sadasdadasd'
+    // };
 
-    if(this.filmDTO.isSeries && this.filmDTO.series) {
-      this.getSeriesEpisodes(this.filmDTO.series);
-    }
+    // if(this.filmDTO.isSeries && this.filmDTO.series) {
+    //   this.getSeriesEpisodes();
+    // }
   }
 
-  getSeriesEpisodes(seriesName: string) {
+  getSeriesEpisodes() {
     this.filmService.getEpisodesBySeries(this.filmDTO.series).subscribe(response => {
       this.episodes = response;
     }, error => {
@@ -96,40 +97,46 @@ export class FilmPageComponent {
     //                  { id: 7, seasonNumber: 7, episodeNumber: 7 }]
   }
 
-  loadEpisode(id: number): void {
+  loadEpisode(id: string): void {
     this.filmService.getFilmById(id).subscribe(response => {
       this.filmDTO = response;
+      console.log(this.filmDTO)
+      this.convertBase64ToVideo();
     }, error => {
       console.log('Error fetching episode data', error);
     });
   }
   
-  onFileChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    if (inputElement.files && inputElement.files.length) {
-      this.filmFile = inputElement.files[0];
-      this.filmDTO.fileName = this.filmFile.name;
-      this.convertFileToBase64(this.filmFile)
-    } 
-    console.log(this.filmFile);
-  }
+  // onFileChange(event: Event): void {
+  //   const inputElement = event.target as HTMLInputElement;
+  //   if (inputElement.files && inputElement.files.length) {
+  //     this.filmFile = inputElement.files[0];
+  //     this.filmDTO.fileName = this.filmFile.name;
+  //     this.convertFileToBase64(this.filmFile)
+  //   } 
+  //   console.log(this.filmFile);
+  // }
 
-  convertFileToBase64(file: File): void {
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.filmDTO.file = reader.result as string;
-      this.videoSource = this.filmDTO.file;
-      if(this.videoPlayer) {
-        const video: HTMLVideoElement = this.videoPlayer.nativeElement;
-        video.load();
-      }
-    };
-    reader.readAsDataURL(file);
-  }
+  // convertFileToBase64(file: File): void {
+  //   const reader = new FileReader();
+  //   reader.onload = () => {
+  //     this.filmDTO.file = reader.result as string;
+  //     this.videoSource = this.filmDTO.file;
+  //     if(this.videoPlayer) {
+  //       const video: HTMLVideoElement = this.videoPlayer.nativeElement;
+  //       video.load();
+  //     }
+  //   };
+  //   reader.readAsDataURL(file);
+  // }
 
   convertBase64ToVideo(): void {
-    if (this.filmDTO.file) {
-      this.videoSource = this.filmDTO.file;
+    if (this.filmDTO.fileContent) {
+      this.videoSource = 'data:video/mp4;base64,' + this.filmDTO.fileContent;
+      if(this.videoPlayer) {
+          const video: HTMLVideoElement = this.videoPlayer.nativeElement;
+          video.load();
+      }
     }
   }
 
