@@ -1,7 +1,7 @@
 export interface UploadFilmDTO {
-    id?: number,
+    filmId?: string,
     fileName: string,
-    file: string,
+    fileContent: string,
     title: string,
     description: string,
     actors: string[],

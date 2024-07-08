@@ -23,7 +23,7 @@ export class FilmService {
     return this.http.post<UploadFilmDTO>(environment.apiHost + '/films', filmDTO);
   }
 
-  getFilmById(id: number): Observable<UploadFilmDTO> {
+  getFilmById(id: string): Observable<UploadFilmDTO> {
     return this.http.get<UploadFilmDTO>(environment.apiHost + '/films/' + id);
   }
 
