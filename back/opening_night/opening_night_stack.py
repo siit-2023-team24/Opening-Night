@@ -11,6 +11,8 @@ from aws_cdk import (
     aws_cognito as cognito,
     aws_ssm as ssm,
     aws_sqs as sqs,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
 )
 
 from aws_cdk.aws_lambda_python_alpha import PythonLayerVersion
@@ -167,7 +169,7 @@ class OpeningNightStack(Stack):
             self, "FeedQueue",
         )
 
-        def create_lambda_function(id, handler, include_dir, method, layers, env_var=''):
+        def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
             function = _lambda.Function(
                 self, id,
                 runtime=_lambda.Runtime.PYTHON_3_9,
@@ -192,7 +194,7 @@ class OpeningNightStack(Stack):
                     'BUCKET_NAME': opening_nights_bucket.bucket_name,
                     'CUSTOM_VAR': env_var
                 },
-                role=lambda_role
+                role=role
             )
             fn_url = function.add_function_url(
                 auth_type=_lambda.FunctionUrlAuthType.NONE,
@@ -221,14 +223,6 @@ class OpeningNightStack(Stack):
         #     entry='lambda_layers/ffmpeg_layer',
         #     compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
         # )
-
-        upload_film_lambda = create_lambda_function(
-            "uploadFilm",
-            "upload_film.create",
-            "lambdas/uploadFilm",
-            "POST",
-            [ffmpeg_layer]
-        )
 
         download_film_lambda = create_lambda_function(
             "downloadFilm",
@@ -340,6 +334,108 @@ class OpeningNightStack(Stack):
             "lambdas/register",
             "POST",
             []
+        )
+
+        # Upload film step
+
+        upload_film_original_lambda = create_lambda_function(
+            "uploadOriginal",
+            "upload_film_original.create",
+            "lambdas/uploadOriginal",
+            "",
+            [ffmpeg_layer]
+        )
+
+        upload_film_360p_lambda = create_lambda_function(
+            "upload360p",
+            "upload_film_360p.create",
+            "lambdas/upload360p",
+            "",
+            [ffmpeg_layer]
+        )
+
+        upload_film_144p_lambda = create_lambda_function(
+            "upload144p",
+            "upload_film_144p.create",
+            "lambdas/upload144p",
+            "",
+            [ffmpeg_layer]
+        )
+
+        write_info_lambda = create_lambda_function(
+            "writeInfo",
+            "write_info.create",
+            "lambdas/writeInfo",
+            "",
+            []
+        )
+
+        write_info_task = tasks.LambdaInvoke(
+            self, "WriteInfoTask",
+            lambda_function=write_info_lambda,
+            output_path='$'
+        )
+
+        upload_film_original_task = tasks.LambdaInvoke(
+            self, "UploadFilmOriginalTask",
+            lambda_function=upload_film_original_lambda,
+            input_path='$.Payload'
+        )
+
+        upload_film_360p_task = tasks.LambdaInvoke(
+            self, "UploadFilm360pTask",
+            lambda_function=upload_film_360p_lambda,
+            input_path='$.Payload'
+        )
+
+        upload_film_144p_task = tasks.LambdaInvoke(
+            self, "UploadFilm144pTask",
+            lambda_function=upload_film_144p_lambda,
+            input_path='$.Payload'
+        )
+
+        upload_parallel_tasks = sfn.Parallel(self, "UploadParallelTasks", input_path='$')
+        upload_parallel_tasks.branch(sfn.Chain.start(upload_film_original_task))
+        upload_parallel_tasks.branch(sfn.Chain.start(upload_film_360p_task))
+        upload_parallel_tasks.branch(sfn.Chain.start(upload_film_144p_task))
+
+        write_info_task.next(upload_parallel_tasks)
+
+        upload_definition = write_info_task
+
+        upload_step_function = sfn.StateMachine(
+            self, "UploadStateMachine",
+            definition_body=sfn.DefinitionBody.from_chainable(upload_definition),
+            comment='Upload film'
+        )
+
+        upload_lambda_role = iam.Role(
+            self, "UploadLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        upload_lambda_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+        )
+        upload_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "states:StartExecution"
+                ],
+                resources=[
+                           upload_step_function.state_machine_arn
+                        ]
+            )
+        )
+
+        upload_film_lambda = create_lambda_function(
+            "uploadFilm",
+            "upload_film.upload",
+            "lambdas/uploadFilm",
+            "POST",
+            [],
+            upload_lambda_role,
+            upload_step_function.state_machine_arn
         )
 
         opening_nights_api = apigateway.RestApi(self, "Opening-Night-Api",
