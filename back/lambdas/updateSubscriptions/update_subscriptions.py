@@ -3,6 +3,7 @@ import os
 import boto3
 
 dynamodb = boto3.resource('dynamodb')
+sqs = boto3.client('sqs')
 
 def update_subs(event, context):
 
@@ -21,6 +22,11 @@ def update_subs(event, context):
             'genres': subs['genres']
         }
     )
+    queue_url = os.environ['CUSTOM_VAR']
+    sqs.send_message(
+        QueueUrl=queue_url,
+        MessageBody=username
+    )
 
     body = {'message': 'Successfully updated subscriptions.'}
 
@@ -31,6 +37,3 @@ def update_subs(event, context):
         },
         'body': json.dumps(body, default=str)
         }
-
-    
-

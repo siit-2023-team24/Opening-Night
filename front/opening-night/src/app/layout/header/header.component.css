@@ -11,11 +11,18 @@ header{
 }
 
 .logo{
-    width: 100px;
+    width: 120px;
 }
 
 .title{
-    margin-left: 50px;
+    margin-left: 15px;
     font-size: 40px;
     color: #0C4A60;
 }
+
+.title-orange{
+    margin-left: 40px;
+    font-size: 40px;
+    color: #EF6C33;
+}
+

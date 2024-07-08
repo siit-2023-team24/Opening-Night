@@ -1,0 +1,33 @@
+.register-form{
+    min-width: 600px;
+}
+
+.register-btn {
+    color: #0C4A60;
+    background-color: #ABDFF1;
+}
+
+.back-btn {
+    background-color: #E1DDDB;
+    color: #0C4A60;
+}
+.sign-up-btn {
+    background-color: #0C4A60;
+    color: white;
+}
+
+.input-field {
+    width: 60%;
+    margin: 25px 0;
+    box-sizing: border-box;
+    background-color: #E1DDDB;
+    border: none;
+    height: 30px;
+    padding: 5px;
+    font-size: 16px;
+}
+
+.error {
+    color: red;
+    height : 20px;
+}
