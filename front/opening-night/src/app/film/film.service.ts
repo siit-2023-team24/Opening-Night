@@ -7,6 +7,7 @@ import { ActorsAndDirectorsDTO } from '../shared/actorsAndDirectors';
 import { SeriesEpisodeDTO } from './model/series-episode';
 import { FilmCardDTO } from './model/film-card';
 import { FilmFeedDTO } from './model/film_feed';
+import { MessageResponse } from 'src/env/error-response';
 
 @Injectable({
   providedIn: 'root'
@@ -52,6 +53,10 @@ export class FilmService {
   }
 
   search(input: string): Observable<FilmCardDTO[]> {
-    return this.http.get<FilmCardDTO[]>(environment.apiHost + '/search')
+    return this.http.get<FilmCardDTO[]>(environment.apiHost + '/search/' + input)
+  }
+
+  delete(filmId: string): Observable<MessageResponse> {
+    return this.http.delete<MessageResponse>(environment.apiHost + '/films/' + filmId)
   }
 }

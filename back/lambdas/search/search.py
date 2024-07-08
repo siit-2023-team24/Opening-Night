@@ -5,7 +5,9 @@ import boto3
 dynamodb = boto3.resource('dynamodb')
 
 def search(event, context):
-    input = event['input']
+    
+    path_params = event.get('pathParameters', {})
+    input = path_params.get('input')
 
     #ako ima delimitere, radi filter kroz gsi search-index, ako nema scan
     if '|' in input:

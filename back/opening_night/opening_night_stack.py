@@ -8,12 +8,11 @@ from aws_cdk import (
     BundlingOptions,
     aws_s3 as s3,
     RemovalPolicy,
-    aws_sqs as sqs,
-    aws_stepfunctions as sfn,
-    aws_stepfunctions_tasks as tasks,
     aws_lambda_event_sources as eventsources,
     aws_cognito as cognito,
     aws_ssm as ssm,
+    aws_events as events,
+    aws_events_targets as targets,
     aws_sqs as sqs,
     aws_stepfunctions as sfn,
     aws_stepfunctions_tasks as tasks,
@@ -141,8 +140,8 @@ class OpeningNightStack(Stack):
             write_capacity=1
         )
 
-        opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
-            bucket_name="opening-night-bucket",
+        opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket1",
+            bucket_name="opening-night-bucket1",
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             block_public_access = s3.BlockPublicAccess.BLOCK_ALL
@@ -225,11 +224,6 @@ class OpeningNightStack(Stack):
         )
 
 
-        
-        #TODO razdvojiti prava, ne mora
-
-
-
         def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
             function = _lambda.Function(
                 self, id,
@@ -252,6 +246,7 @@ class OpeningNightStack(Stack):
                     'RATINGS_TABLE_NAME': ratings_table.table_name,
                     'DOWNLOADS_TABLE_NAME': downloads_log_table.table_name,
                     'FEED_TABLE_NAME': feed_table.table_name,
+                    'SEARCH_TABLE_NAME': search_table.table_name,
                     'BUCKET_NAME': opening_nights_bucket.bucket_name,
                     'CUSTOM_VAR': env_var
                 },
@@ -553,6 +548,15 @@ class OpeningNightStack(Stack):
             env_var=search_table.table_name
         )
 
+        delete_lambda = create_lambda_function(
+            "deleteFilm",
+            "delete_film.delete",
+            "lambdas/deleteFilm",
+            "DELETE",
+            [],
+            env_var=feed_queue.queue_url
+        )
+
         #check subs for sns
 
         check_subscriptions_lambda = create_lambda_function(
@@ -571,15 +575,7 @@ class OpeningNightStack(Stack):
             batch_size=1,
             bisect_batch_on_error=True,
             retry_attempts=0,
-            filters=[
-                eventsources.FilterCriteria.filter(
-                    patterns=[
-                        {"eventName": ["INSERT", "MODIFY"]}
-                    ]
-                )
-            ]
-        )
-
+            filters=[_lambda.FilterCriteria.filter({"event_name": _lambda.FilterRule.not_equals("DELETE")})])
         check_subscriptions_lambda.add_event_source(db_event_source)
 
 
@@ -657,7 +653,7 @@ class OpeningNightStack(Stack):
         feed_definition = feed_parallel_tasks
 
         feed_step_function = sfn.StateMachine(
-            self, "FeedStateMashine",
+            self, "FeedStateMachine",
             definition_body=sfn.DefinitionBody.from_chainable(feed_definition),
             comment='Determine and persist feed for user'
         )
@@ -729,6 +725,9 @@ class OpeningNightStack(Stack):
         get_film_by_id_integration = apigateway.LambdaIntegration(get_film_by_id_lambda)
         film_by_id.add_method("GET", get_film_by_id_integration)
 
+        delete_integration = apigateway.LambdaIntegration(delete_lambda)
+        film_by_id.add_method("DELETE", delete_integration)
+
         update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
         films.add_method("PUT", update_film_integration)
 
@@ -778,6 +777,6 @@ class OpeningNightStack(Stack):
         get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
         feed.add_method("GET", get_feed_integration)
 
-        search = opening_nights_api.root.add_resource("search")
+        search = opening_nights_api.root.add_resource("search").add_resource("{input}")
         search_integration = apigateway.LambdaIntegration(search_lambda)
         search.add_method("GET", search_integration) 
