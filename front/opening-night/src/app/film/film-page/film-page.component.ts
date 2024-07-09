@@ -1,8 +1,8 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { UploadFilmDTO } from '../model/upload-film';
 import { FilmService } from '../film.service';
 import { ActivatedRoute } from '@angular/router';
 import { SeriesEpisodeDTO } from '../model/series-episode';
+import { FilmDetailsDTO } from '../model/film-details';
 
 @Component({
   selector: 'app-film-page',
@@ -11,7 +11,8 @@ import { SeriesEpisodeDTO } from '../model/series-episode';
 })
 export class FilmPageComponent {
 
-  filmDTO: UploadFilmDTO = {
+  filmDTO: FilmDetailsDTO = {
+    filmId: '',
     fileName: '',
     title: '',
     description: '',
@@ -19,13 +20,16 @@ export class FilmPageComponent {
     directors: [],
     genres: [],
     isSeries: false,
-    fileContent: ''
+    fileContentOriginal: '',
+    fileContent360p: '',
+    fileContent144p: ''
   };
 
   filmFile: File | undefined;
-  filmId: string = ''; //TODO: dobijace id iz roditeljske komponente tj. str koja prikazuje sve filmove
+  filmId: string = '';
   seasons: number[] = []
   episodes: SeriesEpisodeDTO[] = []
+  selectedQuality: string = 'original';
 
   @ViewChild('videoPlayer') videoPlayer: ElementRef<HTMLVideoElement> | undefined;
   videoSource: string | ArrayBuffer | null = null;
@@ -54,24 +58,6 @@ export class FilmPageComponent {
       console.log('Error fetching film data', error);
     });
 
-    // this.filmDTO = {
-    //   id: this.filmId,
-    //   fileName: 'asdfasdf',
-    //   title: 'fasdfasdfas',
-    //   description: 'fadsfasdfasd',
-    //   actors: ['Christian Bale', 'Hugh Jackman', 'Emma Stone'],
-    //   directors: ['Poopy Pooppants'],
-    //   genres: ['comedy'],
-    //   isSeries: false,
-    //   series: 'Naruto',
-    //   season: 4,
-    //   episode: 1,
-    //   file: 'sadasdadasd'
-    // };
-
-    // if(this.filmDTO.isSeries && this.filmDTO.series) {
-    //   this.getSeriesEpisodes();
-    // }
   }
 
   getSeriesEpisodes() {
@@ -87,14 +73,6 @@ export class FilmPageComponent {
     });
 
     this.seasons.sort((a, b) => a - b);
-    
-    // this.episodes = [{ id: 1, seasonNumber: 1, episodeNumber: 10 },
-    //                  { id: 2, seasonNumber: 2, episodeNumber: 10 },
-    //                  { id: 3, seasonNumber: 3, episodeNumber: 10 },
-    //                  { id: 4, seasonNumber: 4, episodeNumber: 10 },
-    //                  { id: 5, seasonNumber: 5, episodeNumber: 10 },
-    //                  { id: 6, seasonNumber: 6, episodeNumber: 10 },
-    //                  { id: 7, seasonNumber: 7, episodeNumber: 7 }]
   }
 
   loadEpisode(id: string): void {
@@ -106,36 +84,44 @@ export class FilmPageComponent {
       console.log('Error fetching episode data', error);
     });
   }
-  
-  // onFileChange(event: Event): void {
-  //   const inputElement = event.target as HTMLInputElement;
-  //   if (inputElement.files && inputElement.files.length) {
-  //     this.filmFile = inputElement.files[0];
-  //     this.filmDTO.fileName = this.filmFile.name;
-  //     this.convertFileToBase64(this.filmFile)
-  //   } 
-  //   console.log(this.filmFile);
-  // }
-
-  // convertFileToBase64(file: File): void {
-  //   const reader = new FileReader();
-  //   reader.onload = () => {
-  //     this.filmDTO.file = reader.result as string;
-  //     this.videoSource = this.filmDTO.file;
-  //     if(this.videoPlayer) {
-  //       const video: HTMLVideoElement = this.videoPlayer.nativeElement;
-  //       video.load();
-  //     }
-  //   };
-  //   reader.readAsDataURL(file);
-  // }
 
   convertBase64ToVideo(): void {
-    if (this.filmDTO.fileContent) {
-      this.videoSource = 'data:video/mp4;base64,' + this.filmDTO.fileContent;
+    if (this.filmDTO.fileContentOriginal) {
+      this.videoSource = 'data:video/mp4;base64,' + this.filmDTO.fileContentOriginal;
       if(this.videoPlayer) {
           const video: HTMLVideoElement = this.videoPlayer.nativeElement;
           video.load();
+      }
+    }
+  }
+
+  onQualityChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.selectedQuality = target.value;
+    this.updateVideoSource();
+  }
+
+  updateVideoSource(): void {
+    if (this.videoPlayer) {
+      const video: HTMLVideoElement = this.videoPlayer.nativeElement;
+      let fileContent: string | null = null;
+
+      switch (this.selectedQuality) {
+        case 'original':
+          fileContent = this.filmDTO.fileContentOriginal;
+          break;
+        case '360p':
+          fileContent = this.filmDTO.fileContent360p;
+          break;
+        case '144p':
+          fileContent = this.filmDTO.fileContent144p;
+          break;
+      }
+
+      if (fileContent) {
+        const videoSource = 'data:video/mp4;base64,' + fileContent;
+        video.src = videoSource;
+        video.load();
       }
     }
   }

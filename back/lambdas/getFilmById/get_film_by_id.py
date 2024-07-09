@@ -14,11 +14,16 @@ def get_film(event, context):
     response = table.get_item(Key={'filmId': film_id})
     
     if 'Item' in response:
-        file_name = response['Item']['fileName']
-
         try:
-            s3_response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
-            file_content = base64.b64encode(s3_response['Body'].read()).decode('utf-8')
+            s3_response = s3_client.get_object(Bucket=bucket_name, Key=film_id)
+            file_content_original = base64.b64encode(s3_response['Body'].read()).decode('utf-8')
+
+            s3_response = s3_client.get_object(Bucket=bucket_name, Key=film_id + "_360p")
+            file_content_360p = base64.b64encode(s3_response['Body'].read()).decode('utf-8')
+
+            s3_response = s3_client.get_object(Bucket=bucket_name, Key=film_id + "_144p")
+            file_content_144p = base64.b64encode(s3_response['Body'].read()).decode('utf-8')
+
         except Exception as e:
             return {
                 'statusCode': 500,
@@ -28,7 +33,9 @@ def get_film(event, context):
                 'body': json.dumps({'error': str(e)})
             }
         
-        response['Item']['fileContent'] = file_content
+        response['Item']['fileContentOriginal'] = file_content_original
+        response['Item']['fileContent360p'] = file_content_360p
+        response['Item']['fileContent144p'] = file_content_144p
         
         return {
             'statusCode': 200,
