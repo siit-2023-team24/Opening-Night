@@ -9,7 +9,7 @@ sqs = boto3.client('sqs')
 def delete(event, context):
     
     path_params = event.get('pathParameters', {})
-    filmId = path_params.get('filmId')
+    filmId = path_params.get('id')
     
     try:
         remove_from_films(filmId)
@@ -43,7 +43,15 @@ def remove_from_films(filmId):
 def remove_from_search_table(filmId):
     table_name = os.environ['SEARCH_TABLE_NAME']
     table = dynamodb.Table(table_name)
-    table.delete_item(Key={'filmId': filmId})
+
+    items = table.query(KeyConditionExpression=boto3.dynamodb.conditions.Key('filmId').eq(filmId))
+    films = items['Items']
+    with table.batch_writer() as batch:
+        for film in films:
+            batch.delete_item(Key={
+                'filmId': film['filmId'],
+                'data': film['data']
+            })
 
 
 def remove_from_bucket(filmId):

@@ -169,6 +169,7 @@ class OpeningNightStack(Stack):
                     "dynamodb:PutItem",
                     "dynamodb:UpdateItem",
                     "dynamodb:DeleteItem",
+                    "dynamodb:BatchWriteItem",
                     "s3:PutObject",
                     "s3:PutObjectAcl",
                     "s3:GetObject",
@@ -361,7 +362,8 @@ class OpeningNightStack(Stack):
             "update_film.update",
             "lambdas/updateFilm",
             "PUT",
-            []
+            [],
+            env_var=feed_queue.queue_url
         )
 
         update_film_file_changed_lambda = create_lambda_function(

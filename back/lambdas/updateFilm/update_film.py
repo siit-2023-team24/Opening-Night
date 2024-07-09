@@ -3,6 +3,7 @@ import boto3
 import os
 
 dynamodb = boto3.resource('dynamodb')
+sqs = boto3.client('sqs')
 
 def update(event, context):
     body = json.loads(event['body'])
@@ -34,6 +35,8 @@ def update(event, context):
     message = {
         'message': 'Successfully updated film'
     }
+
+    remove_from_feed(film_id)
     
     return { 
             'statusCode': 200, 
@@ -42,3 +45,23 @@ def update(event, context):
             },
             'body': json.dumps(message, default=str)
             }
+
+
+
+def remove_from_feed(filmId):
+    table_name = os.environ['FEED_TABLE_NAME']
+    table = dynamodb.Table(table_name)
+    
+    queue_url = os.environ['CUSTOM_VAR']
+
+    items = table.scan()
+    items = items.get('Items', [])
+
+    for item in items:
+        for film in item['films']:
+            if filmId == film[0]['filmId']:
+                sqs.send_message(
+                    QueueUrl=queue_url,
+                    MessageBody=item['username']
+                )
+                break

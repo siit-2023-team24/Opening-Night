@@ -90,7 +90,7 @@ def determine_feed(event, context):
                     feed_series_names.append(film['series'])
 
             if (n+1 > max_len):
-                series_name = feed[-1].get('series', '')
+                series_name = feed[-1][0].get('series', '')
                 if series_name in feed_series_names:
                     feed_series_names.remove(series_name)
 
