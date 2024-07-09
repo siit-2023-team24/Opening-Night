@@ -39,6 +39,7 @@ def calc_ratings_score(event, context):
             continue
 
         # rating score: 1 = -1, 2 = 0.25, 3 = 0.5, 4 = 0.75, 5 = 1
+        rating['stars'] = int(rating['stars'])
         score = (rating['stars'] - 1)
         if (score == 0): 
             score = -1

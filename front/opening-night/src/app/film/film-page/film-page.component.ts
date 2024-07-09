@@ -1,8 +1,12 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { FilmService } from '../film.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SeriesEpisodeDTO } from '../model/series-episode';
 import { FilmDetailsDTO } from '../model/film-details';
+import { FilmFeedDTO } from '../model/film_feed';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MessageResponse } from 'src/env/error-response';
+import { AuthService } from 'src/app/auth/auth.service';
 
 @Component({
   selector: 'app-film-page',
@@ -31,13 +35,20 @@ export class FilmPageComponent {
   episodes: SeriesEpisodeDTO[] = []
   selectedQuality: string = 'original';
 
+  role: string;
+
   @ViewChild('videoPlayer') videoPlayer: ElementRef<HTMLVideoElement> | undefined;
   videoSource: string | ArrayBuffer | null = null;
 
   constructor(
     private filmService: FilmService,
-    private route: ActivatedRoute
-  ) {}
+    private route: ActivatedRoute,
+    private snackBar: MatSnackBar,
+    private router: Router,
+    private authService: AuthService
+  ) {
+    this.role = authService.getRole();
+  }
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -125,6 +136,53 @@ export class FilmPageComponent {
         video.load();
       }
     }
+  }
+
+  download() {
+    let name = this.filmId;
+    if (this.selectedQuality == '360p')
+      name += '_360p';
+    if (this.selectedQuality == '144p')
+      name += '_144p';
+
+    let dto: FilmFeedDTO = {
+      filmId: this.filmId,
+      title: this.filmDTO.title,
+      actors: this.filmDTO.actors,
+      directors: this.filmDTO.directors,
+      genres: this.filmDTO.genres,
+      isSeries: this.filmDTO.isSeries,
+      username: this.authService.getUsername()
+    }
+    this.filmService.download(name, dto).subscribe({
+      next: (data: any)=> {
+        console.log(data);
+        alert(data['url']);
+        window.open(data['url'], '_blank');
+      },error: (error: any)=> {
+        console.log('Error fetching film data', error);
+      }
+    })
+    
+  }
+
+  private showSnackBar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+    });
+  }
+
+  deleteFilm() {
+    this.filmService.delete(this.filmId).subscribe({
+      next: (data: MessageResponse)=> {
+        console.log(data.message);
+        this.showSnackBar(data.message);
+        this.router.navigate(['home']);
+      },
+      error: (error: any)=> {
+        console.log('Error fetching film data', error);
+      }
+    })
   }
 
 }

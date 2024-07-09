@@ -16,9 +16,9 @@ def get_one(event, context):
     
     name = path_parameters.get('name')
 
-    response = s3_client.get_object(Bucket=bucket_name, Key=name)
-    content = response['Body'].read()
-    encoded_content = base64.b64encode(content)
+    # response = s3_client.get_object(Bucket=bucket_name, Key=name)
+    # content = response['Body'].read()
+    # encoded_content = base64.b64encode(content)
 
     event = json.loads(event['body'])
     filmId = event['filmId']
@@ -27,6 +27,12 @@ def get_one(event, context):
     actors = event['actors']
     directors = event['directors']
     timestamp = datetime.now().isoformat()
+
+    url = s3_client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': name},
+        ExpiresIn=3600  # URL expires in 1 hour
+    )
 
 
     table_name = os.environ['DOWNLOADS_TABLE_NAME']
@@ -51,5 +57,8 @@ def get_one(event, context):
     
     return {
         'statusCode': 200,
-        'body': encoded_content
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+        },
+        'body': json.dumps({'url': url})
     }

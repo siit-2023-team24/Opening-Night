@@ -100,6 +100,8 @@ def determine_feed(event, context):
     feed_table_name = os.environ['FEED_TABLE_NAME']
     feed_table = dynamodb.Table(feed_table_name)
 
+    feed = [f[0] for f in feed]
+
     feed_table.put_item(
         Item = {
             'username': username,

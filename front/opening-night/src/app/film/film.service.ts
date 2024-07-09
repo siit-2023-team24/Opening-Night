@@ -65,4 +65,8 @@ export class FilmService {
   delete(filmId: string): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(environment.apiHost + '/films/' + filmId)
   }
+
+  download(name:string, dto: FilmFeedDTO): Observable<Object> {
+    return this.http.post<Object>(environment.apiHost + '/' + name, dto);
+  }
 }

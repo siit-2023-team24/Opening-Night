@@ -320,7 +320,8 @@ class OpeningNightStack(Stack):
             "download_film.get_one",
             "lambdas/downloadFilm",
             "GET",
-            []
+            [],
+            env_var=feed_queue.queue_url
         )
 
         update_subscriptions_lambda = create_lambda_function(
@@ -735,7 +736,7 @@ class OpeningNightStack(Stack):
 
         film = opening_nights_api.root.add_resource("{name}")
         download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
-        film.add_method("GET", download_film_integration, authorizer=viewer_authorizer)
+        film.add_method("POST", download_film_integration, authorizer=viewer_authorizer)
 
         film_by_id = films.add_resource("{id}")
         get_film_by_id_integration = apigateway.LambdaIntegration(get_film_by_id_lambda)

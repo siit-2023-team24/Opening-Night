@@ -41,7 +41,9 @@
 
   <!-- Update and Delete Buttons -->
   <div class="film-actions">
-    <button mat-raised-button color="primary">Download</button>
-    <button mat-raised-button color="primary" [routerLink]="'/update/' + filmDTO.filmId">Update</button>
-    <button mat-raised-button color="warn">Delete</button>
+    <button mat-raised-button color="primary" (click)="download()">Download</button>
+    <button mat-raised-button *ngIf="role == 'admin'" color="primary" [routerLink]="'/update/' + filmDTO.filmId">Update</button>
+    <button mat-raised-button *ngIf="role == 'admin'"  color="warn" (click)="deleteFilm()">Delete</button>
   </div>
+
+  <app-ratings [filmId]="filmId" [genres]="filmDTO.genres" [directors]="filmDTO.directors" [actors]="filmDTO.actors"></app-ratings>

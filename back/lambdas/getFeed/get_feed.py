@@ -15,8 +15,7 @@ def get_feed(event, context):
     items = table.get_item(Key={'username': username})
 
     try:
-        items = items['Item']['films']
-        films = [film[0] for film in items]
+        films = items['Item']['films']
         status = 200
     except KeyError:
         films = []

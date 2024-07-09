@@ -1,6 +1,5 @@
 export interface FilmFeedDTO {
-    id?: number,
-    fileName: string,
+    filmId: string,
     title: string,
     actors: string[],
     directors: string[],
@@ -8,5 +7,6 @@ export interface FilmFeedDTO {
     isSeries: boolean,
     series?: string,
     season?: number,
-    episode?: number
+    episode?: number,
+    username?: string
 }

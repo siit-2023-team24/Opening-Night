@@ -1,7 +1,7 @@
 <h2 class="subtitle">Top picks for you...</h2>
 <div class="container">
     <div class="film-card" *ngFor="let film of films">
-        <mat-card [routerLink]="'/film/' + film.id">
+        <mat-card [routerLink]="'/film/' + film.filmId">
           <mat-card-header>
             <mat-card-title>{{ film.title }}</mat-card-title>
             <mat-card-subtitle *ngIf="film.isSeries">S:{{ film.season }} E:{{ film.episode }}</mat-card-subtitle>
