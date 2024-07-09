@@ -8,14 +8,14 @@ from aws_cdk import (
     BundlingOptions,
     aws_s3 as s3,
     RemovalPolicy,
-    aws_sqs as sqs,
-    aws_stepfunctions as sfn,
-    aws_stepfunctions_tasks as tasks,
     aws_lambda_event_sources as eventsources,
     aws_cognito as cognito,
     aws_ssm as ssm,
     aws_events as events,
     aws_events_targets as targets,
+    aws_sqs as sqs,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
 )
 
 from aws_cdk.aws_lambda_python_alpha import PythonLayerVersion
@@ -157,6 +157,7 @@ class OpeningNightStack(Stack):
                     "dynamodb:PutItem",
                     "dynamodb:UpdateItem",
                     "dynamodb:DeleteItem",
+                    "dynamodb:BatchWriteItem",
                     "s3:PutObject",
                     "s3:PutObjectAcl",
                     "s3:GetObject",
@@ -211,11 +212,6 @@ class OpeningNightStack(Stack):
         )
 
 
-        
-        #TODO razdvojiti prava, ne mora
-
-
-
         def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var='', is_viewer='false'):
             function = _lambda.Function(
                 self, id,
@@ -231,7 +227,7 @@ class OpeningNightStack(Stack):
                         ],
                     ),),
                 memory_size=128,
-                timeout=Duration.seconds(10),
+                timeout=Duration.seconds(60),
                 environment={
                     'TABLE_NAME': opening_nights_table.table_name,
                     'SUBS_TABLE_NAME': subs_table.table_name,
@@ -262,6 +258,15 @@ class OpeningNightStack(Stack):
             compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
         )
 
+
+
+        ffmpeg_layer = _lambda.LayerVersion(
+            self, 'FFmpegLayer',
+            code=_lambda.AssetCode('lambda_layers/ffmpeg_layer'),
+            compatible_runtimes=[_lambda.Runtime.PYTHON_3_9],
+            description='FFmpeg layer',
+        )
+        
         authorize_viewer_lambda = create_lambda_function(
             "authorizeViewer",
             "authorize.authorize",
@@ -299,14 +304,12 @@ class OpeningNightStack(Stack):
         #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
         #     results_cache_ttl=Duration.seconds(0)
         # )
-
-        upload_film_lambda = create_lambda_function(
-            "uploadFilm",
-            "upload_film.create",
-            "lambdas/uploadFilm",
-            "POST",
-            []
-        )
+        
+        # trans_layer = PythonLayerVersion(
+        #     self, 'TransLambdaLayer',
+        #     entry='lambda_layers/ffmpeg_layer',
+        #     compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
+        # )
 
         download_film_lambda = create_lambda_function(
             "downloadFilm",
@@ -355,7 +358,8 @@ class OpeningNightStack(Stack):
             "update_film.update",
             "lambdas/updateFilm",
             "PUT",
-            []
+            [],
+            env_var=feed_queue.queue_url
         )
 
         update_film_file_changed_lambda = create_lambda_function(
@@ -374,21 +378,21 @@ class OpeningNightStack(Stack):
             []
         )
 
-        # get_series_list_lambda = create_lambda_function(
-        #     "getSeriesList",
-        #     "get_series_list.get",
-        #     "lambdas/getSeriesList",
-        #     "GET",
-        #     []
-        # )
+        get_series_list_lambda = create_lambda_function(
+            "getSeriesList",
+            "get_series_list.get",
+            "lambdas/getSeriesList",
+            "GET",
+            []
+        )
 
-        # get_episodes_by_series_lambda = create_lambda_function(
-        #     "getEpisodesBySeries",
-        #     "get_episodes_by_series.get",
-        #     "lambdas/getEpisodesBySeries",
-        #     "GET",
-        #     []
-        # )
+        get_episodes_by_series_lambda = create_lambda_function(
+            "getEpisodesBySeries",
+            "get_episodes_by_series.get",
+            "lambdas/getEpisodesBySeries",
+            "GET",
+            []
+        )
 
         get_ratings_for_film_lambda = create_lambda_function(
             "getRatingForFilm",
@@ -423,6 +427,108 @@ class OpeningNightStack(Stack):
             []
         )
 
+        # Upload film step
+
+        upload_film_original_lambda = create_lambda_function(
+            "uploadOriginal",
+            "upload_film_original.create",
+            "lambdas/uploadOriginal",
+            "",
+            [ffmpeg_layer]
+        )
+
+        upload_film_360p_lambda = create_lambda_function(
+            "upload360p",
+            "upload_film_360p.create",
+            "lambdas/upload360p",
+            "",
+            [ffmpeg_layer]
+        )
+
+        upload_film_144p_lambda = create_lambda_function(
+            "upload144p",
+            "upload_film_144p.create",
+            "lambdas/upload144p",
+            "",
+            [ffmpeg_layer]
+        )
+
+        write_info_lambda = create_lambda_function(
+            "writeInfo",
+            "write_info.create",
+            "lambdas/writeInfo",
+            "",
+            []
+        )
+
+        write_info_task = tasks.LambdaInvoke(
+            self, "WriteInfoTask",
+            lambda_function=write_info_lambda,
+            output_path='$'
+        )
+
+        upload_film_original_task = tasks.LambdaInvoke(
+            self, "UploadFilmOriginalTask",
+            lambda_function=upload_film_original_lambda,
+            input_path='$.Payload'
+        )
+
+        upload_film_360p_task = tasks.LambdaInvoke(
+            self, "UploadFilm360pTask",
+            lambda_function=upload_film_360p_lambda,
+            input_path='$.Payload'
+        )
+
+        upload_film_144p_task = tasks.LambdaInvoke(
+            self, "UploadFilm144pTask",
+            lambda_function=upload_film_144p_lambda,
+            input_path='$.Payload'
+        )
+
+        upload_parallel_tasks = sfn.Parallel(self, "UploadParallelTasks", input_path='$')
+        upload_parallel_tasks.branch(sfn.Chain.start(upload_film_original_task))
+        upload_parallel_tasks.branch(sfn.Chain.start(upload_film_360p_task))
+        upload_parallel_tasks.branch(sfn.Chain.start(upload_film_144p_task))
+
+        write_info_task.next(upload_parallel_tasks)
+
+        upload_definition = write_info_task
+
+        upload_step_function = sfn.StateMachine(
+            self, "UploadStateMachine",
+            definition_body=sfn.DefinitionBody.from_chainable(upload_definition),
+            comment='Upload film'
+        )
+
+        upload_lambda_role = iam.Role(
+            self, "UploadLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        upload_lambda_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+        )
+        upload_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "states:StartExecution"
+                ],
+                resources=[
+                           upload_step_function.state_machine_arn
+                        ]
+            )
+        )
+
+        upload_film_lambda = create_lambda_function(
+            "uploadFilm",
+            "upload_film.upload",
+            "lambdas/uploadFilm",
+            "POST",
+            [],
+            upload_lambda_role,
+            upload_step_function.state_machine_arn
+        )
+
         get_feed_lambda = create_lambda_function(
             "getFeed",
             "get_feed.get_feed",
@@ -431,57 +537,53 @@ class OpeningNightStack(Stack):
             []
         )
 
-        # search_lambda = create_lambda_function(
-        #     "search",
-        #     "search.search",
-        #     "lambdas/search",
-        #     "GET",
-        #     [],
-        #     env_var=search_table.table_name
-        # )
+        search_lambda = create_lambda_function(
+            "search",
+            "search.search",
+            "lambdas/search",
+            "GET",
+            [],
+            env_var=search_table.table_name
+        )
 
-        # delete_lambda = create_lambda_function(
-        #     "deleteFilm",
-        #     "delete_film.delete",
-        #     "lambdas/deleteFilm",
-        #     "DELETE",
-        #     [],
-        #     env_var=feed_queue.queue_url
-        # )
+        search_filter_lambda = create_lambda_function(
+            "searchFilter",
+            "search_filter.search_filter",
+            "lambdas/search",
+            "GET",
+            []
+        )
+
+        delete_lambda = create_lambda_function(
+            "deleteFilm",
+            "delete_film.delete",
+            "lambdas/deleteFilm",
+            "DELETE",
+            [],
+            env_var=feed_queue.queue_url
+        )
 
         #check subs for sns
 
-        # check_subscriptions_lambda = create_lambda_function(
-        #     "checkSubs",
-        #     "check_subscriptions.check",
-        #     "lambdas/checkSubs",
-        #     "",
-        #     [],
-        #     sns_lambda_role,
-        #     feed_queue.queue_url
-        # )
+        check_subscriptions_lambda = create_lambda_function(
+            "checkSubs",
+            "check_subscriptions.check",
+            "lambdas/checkSubs",
+            "",
+            [],
+            sns_lambda_role,
+            feed_queue.queue_url
+        )
 
-        #TODO
-        # db_event_source = eventsources.DynamoEventSource(
-        #     opening_nights_table,
-        #     starting_position=_lambda.StartingPosition.LATEST,
-        #     batch_size=1,
-        #     bisect_batch_on_error=True,
-        #     retry_attempts=0
-        # )
-        # check_subscriptions_lambda.add_event_source(db_event_source)
-
-        # rule = events.Rule(
-        #     self, "Rule",
-        #     event_pattern={
-        #         "source": ["aws.dynamodb"],
-        #         "detailType": ["DynamoDB Update Stream Record"],
-        #         "detail": {
-        #             "eventName": ["INSERT", "MODIFY"]
-        #         }
-        #     }
-        # )
-        # rule.add_target(targets.LambdaFunction(check_subscriptions_lambda))
+        db_event_source = eventsources.DynamoEventSource(
+            opening_nights_table,
+            starting_position=_lambda.StartingPosition.LATEST,
+            batch_size=1,
+            bisect_batch_on_error=True,
+            retry_attempts=0,
+            # filters=[_lambda.FilterCriteria.filter({"event_name": _lambda.FilterRule.not_equals("DELETE")})]
+         )
+        check_subscriptions_lambda.add_event_source(db_event_source)
 
 
         #Feed step
@@ -630,8 +732,8 @@ class OpeningNightStack(Stack):
         get_film_by_id_integration = apigateway.LambdaIntegration(get_film_by_id_lambda)
         film_by_id.add_method("GET", get_film_by_id_integration)
 
-        # delete_integration = apigateway.LambdaIntegration(delete_lambda)
-        # film_by_id.add_method("DELETE", delete_integration)
+        delete_integration = apigateway.LambdaIntegration(delete_lambda)
+        film_by_id.add_method("DELETE", delete_integration)
 
         update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
         films.add_method("PUT", update_film_integration)
@@ -655,12 +757,12 @@ class OpeningNightStack(Stack):
         actors_and_directors.add_method("GET", get_actors_and_directors_integration)
 
         series_resource = films.add_resource("series")
-        # get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
-        # series_resource.add_method("GET", get_series_list_integration)
+        get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
+        series_resource.add_method("GET", get_series_list_integration)
 
         series_episodes_resource = series_resource.add_resource("{seriesName}").add_resource("episodes")
-        # get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
-        # series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
+        get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
+        series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
 
         ratings = opening_nights_api.root.add_resource("ratings")
         rate_film_integration = apigateway.LambdaIntegration(rate_film_lambda)
@@ -682,6 +784,11 @@ class OpeningNightStack(Stack):
         get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
         feed.add_method("GET", get_feed_integration)
 
-        # search = opening_nights_api.root.add_resource("search")
-        # search_integration = apigateway.LambdaIntegration(search_lambda)
-        # search.add_method("GET", search_integration) 
+        search = opening_nights_api.root.add_resource("search").add_resource("{input}")
+        search_integration = apigateway.LambdaIntegration(search_lambda)
+        search.add_method("GET", search_integration) 
+
+        search_filter = opening_nights_api.root.add_resource("search-filter").add_resource("{input}")
+        search_filter_integration = apigateway.LambdaIntegration(search_filter_lambda)
+        search_filter.add_method("GET", search_filter_integration) 
+

@@ -1,5 +1,5 @@
 export interface SeriesEpisodeDTO {
-    id: number,
+    filmId: string,
     seasonNumber: number,
     episodeNumber: number
 }

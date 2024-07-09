@@ -49,7 +49,8 @@ def determine_feed(event, context):
             actor_scores[a] = score
     
     max_len = 5
-    feed = []   
+    feed = []
+    feed_series_names = []
 
     table_name = os.environ['TABLE_NAME']
     table = dynamodb.Table(table_name)
@@ -58,6 +59,9 @@ def determine_feed(event, context):
     films = data["Items"]
     for film in films:
         if film['filmId'] in downloaded_films:
+            continue
+
+        if film['isSeries'] and film.get('series', "") in feed_series_names:
             continue
 
         score = 0
@@ -81,7 +85,15 @@ def determine_feed(event, context):
         if n < max_len or (n > 0 and feed[-1][1] < score):
             feed.append((film, score))
             feed.sort(key=lambda x: x[1], reverse=True)
+
+            if film['isSeries']:
+                    feed_series_names.append(film['series'])
+
             if (n+1 > max_len):
+                series_name = feed[-1][0].get('series', '')
+                if series_name in feed_series_names:
+                    feed_series_names.remove(series_name)
+
                 feed = feed[:-1]
 
     # feed determined, saving to db

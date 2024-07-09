@@ -21,25 +21,25 @@ export class UpdateComponent implements OnInit{
     directors: [],
     genres: [],
     isSeries: false,
-    file: ''
+    fileContent: ''
   };
 
   selectedFile: File | undefined;
-  seriesList: string[] = ['One piece', 'Naruto', 'Fuji'];
+  seriesList: string[] = []; //'One piece', 'Naruto', 'Fuji'];
 
-  actors: string[] = [
-    'Matt Damon', 'Leo Dicaprio', 'Jack Nicholson', 'Meryl Streep', 'Tom Hanks', 
-    'Robert De Niro', 'Al Pacino', 'Angelina Jolie', 'Brad Pitt', 'Johnny Depp', 
-    'Morgan Freeman', 'Scarlett Johansson', 'Natalie Portman', 'Jennifer Lawrence', 
-    'Denzel Washington', 'Christian Bale', 'Hugh Jackman', 'Emma Stone', 'Ryan Gosling', 
-    'Charlize Theron'
-  ];
-  directors: string[] = ['Poopy Pooppants', 'Milica Misic', 'Konjic'];
+  actors: string[] = [];
+  //   'Matt Damon', 'Leo Dicaprio', 'Jack Nicholson', 'Meryl Streep', 'Tom Hanks', 
+  //   'Robert De Niro', 'Al Pacino', 'Angelina Jolie', 'Brad Pitt', 'Johnny Depp', 
+  //   'Morgan Freeman', 'Scarlett Johansson', 'Natalie Portman', 'Jennifer Lawrence', 
+  //   'Denzel Washington', 'Christian Bale', 'Hugh Jackman', 'Emma Stone', 'Ryan Gosling', 
+  //   'Charlize Theron'
+  // ];
+  directors: string[] = [] //'Poopy Pooppants', 'Milica Misic', 'Konjic'];
   genres = Object.values(Genre)
   newActor = '';
   newDirector = '';
   newSeries = '';
-  filmId: number = 0; //TODO: dobijace id iz roditeljske komponente tj. str koja prikazuje sve filmove ili str jednog filma
+  filmId: string = ''; //TODO: dobijace id iz roditeljske komponente tj. str koja prikazuje sve filmove ili str jednog filma
   hasFileChanged: boolean = false
 
   constructor(
@@ -117,7 +117,7 @@ export class UpdateComponent implements OnInit{
   convertFileToBase64(file: File): void {
     const reader = new FileReader();
     reader.onload = () => {
-      this.filmDTO.file = reader.result as string;
+      this.filmDTO.fileContent = reader.result as string;
     };
     reader.readAsDataURL(file);
   }

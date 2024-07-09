@@ -9,7 +9,7 @@ table = dynamodb.Table(table_name)
 def get(event, context):
     try:
         response = table.scan(
-            ProjectionExpression="id, title, isSeries, series, season, episode"
+            ProjectionExpression="filmId, title, isSeries, series, season, episode"
         )
         items = response.get('Items', [])
 
@@ -21,6 +21,7 @@ def get(event, context):
             'body': json.dumps(items)
         }
     except Exception as e:
+        print(e)
         return {
             'statusCode': 500,
             'headers': {
