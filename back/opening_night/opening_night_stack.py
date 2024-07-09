@@ -227,7 +227,7 @@ class OpeningNightStack(Stack):
                         ],
                     ),),
                 memory_size=128,
-                timeout=Duration.seconds(60),
+                timeout=Duration.seconds(30),
                 environment={
                     'TABLE_NAME': opening_nights_table.table_name,
                     'SUBS_TABLE_NAME': subs_table.table_name,
@@ -257,8 +257,6 @@ class OpeningNightStack(Stack):
             entry='libs',
             compatible_runtimes=[_lambda.Runtime.PYTHON_3_9]
         )
-
-
 
         ffmpeg_layer = _lambda.LayerVersion(
             self, 'FFmpegLayer',
@@ -359,6 +357,14 @@ class OpeningNightStack(Stack):
             []
         )
 
+        get_film_by_id_update_lambda = create_lambda_function(
+            "getFilmByIdUpdate",
+            "get_film_by_id_update.get_film",
+            "lambdas/getFilmByIdUpdate",
+            "GET",
+            []
+        )
+
         update_film_lambda = create_lambda_function(
             "updateFilm",
             "update_film.update",
@@ -366,14 +372,6 @@ class OpeningNightStack(Stack):
             "PUT",
             [],
             env_var=feed_queue.queue_url
-        )
-
-        update_film_file_changed_lambda = create_lambda_function(
-            "updateFilmFileChanged",
-            "update_film_file_changed.update",
-            "lambdas/updateFilmFileChanged",
-            "PUT",
-            []
         )
 
         get_all_films_lambda = create_lambda_function(
@@ -517,10 +515,16 @@ class OpeningNightStack(Stack):
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=[
-                    "states:StartExecution"
+                    "states:StartExecution",
+                    "s3:PutObject",
+                    "s3:PutObjectAcl",
+                    "s3:GetObject",
+                    "s3:GetObjectAcl",
+                    "s3:DeleteObject"
                 ],
                 resources=[
-                           upload_step_function.state_machine_arn
+                           upload_step_function.state_machine_arn,
+                           opening_nights_bucket.bucket_arn + "/*"
                         ]
             )
         )
@@ -740,13 +744,13 @@ class OpeningNightStack(Stack):
         delete_integration = apigateway.LambdaIntegration(delete_lambda)
         film_by_id.add_method("DELETE", delete_integration, authorizer=admin_authorizer)
 
+        film_update = opening_nights_api.root.add_resource('update').add_resource("{id}")
+        get_film_by_id_update_integration = apigateway.LambdaIntegration(get_film_by_id_update_lambda)
+        film_update.add_method("GET", get_film_by_id_update_integration)
+
         update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
         films.add_method("PUT", update_film_integration, authorizer=admin_authorizer)
-
-        update_film_file_changed_integration = apigateway.LambdaIntegration(update_film_file_changed_lambda)
-        film_update_file = films.add_resource('update')
-        film_update_file.add_method('PUT', update_film_file_changed_integration, authorizer=admin_authorizer)
-
+        
         subs_resource = opening_nights_api.root.add_resource('subscriptions')
         subs = subs_resource.add_resource("{username}")
         

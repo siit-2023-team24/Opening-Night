@@ -1,21 +1,17 @@
-from io import BytesIO
-import json
 import os
 import boto3
 import base64
 from datetime import datetime
-import uuid
 
 s3_client = boto3.client('s3')
 
 def create(event, context):
-    file_content = event['fileContent']
     film_id = event['filmId']
     file_name = event['fileName']
-
-    file_content = base64.b64decode(file_content)
-
     bucket_name = os.environ['BUCKET_NAME']
+    s3_response = s3_client.get_object(Bucket=bucket_name, Key=film_id + '_temp')
+    file_content = base64.b64decode(s3_response['Body'].read())
+
     s3_client.put_object(
         Bucket=bucket_name,
         Key=film_id,

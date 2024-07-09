@@ -40,15 +40,14 @@ def transcode_video(input_bytes, film_id):
     return output_144p_bytes
 
 def create(event, context):
-    file_content = event['fileContent']
     film_id = event['filmId']
     file_name = event['fileName']
-
-    file_content = base64.b64decode(file_content)
+    bucket_name = os.environ['BUCKET_NAME']
+    s3_response = s3_client.get_object(Bucket=bucket_name, Key=film_id+ '_temp')
+    file_content = base64.b64decode(s3_response['Body'].read())
 
     output_144p_bytes = transcode_video(file_content, film_id)
 
-    bucket_name = os.environ['BUCKET_NAME']
     filename_144p = file_name.replace(".mp4", "_144p.mp4")
     file_id_144p = film_id + "_144p"
     s3_client.put_object(

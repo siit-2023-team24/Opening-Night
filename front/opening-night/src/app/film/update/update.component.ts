@@ -5,6 +5,8 @@ import { FilmService } from '../film.service';
 import { ActivatedRoute } from '@angular/router';
 import { Genre } from 'src/app/shared/genre';
 import { ActorsAndDirectorsDTO } from 'src/app/shared/actorsAndDirectors';
+import { FilmDetailsDTO } from '../model/film-details';
+import { UpdateFilmDTO } from '../model/film-update';
 
 @Component({
   selector: 'app-update',
@@ -13,7 +15,7 @@ import { ActorsAndDirectorsDTO } from 'src/app/shared/actorsAndDirectors';
 })
 export class UpdateComponent implements OnInit{
 
-  filmDTO: UploadFilmDTO = {
+  uploadFilmDTO: UploadFilmDTO = {
     fileName: '',
     title: '',
     description: '',
@@ -24,22 +26,27 @@ export class UpdateComponent implements OnInit{
     fileContent: ''
   };
 
+  updateFilmDTO: UpdateFilmDTO = {
+    filmId: '',
+    fileName: '',
+    title: '',
+    description: '',
+    actors: [],
+    directors: [],
+    genres: [],
+    isSeries: false
+  }
+
   selectedFile: File | undefined;
-  seriesList: string[] = []; //'One piece', 'Naruto', 'Fuji'];
+  seriesList: string[] = [];
 
   actors: string[] = [];
-  //   'Matt Damon', 'Leo Dicaprio', 'Jack Nicholson', 'Meryl Streep', 'Tom Hanks', 
-  //   'Robert De Niro', 'Al Pacino', 'Angelina Jolie', 'Brad Pitt', 'Johnny Depp', 
-  //   'Morgan Freeman', 'Scarlett Johansson', 'Natalie Portman', 'Jennifer Lawrence', 
-  //   'Denzel Washington', 'Christian Bale', 'Hugh Jackman', 'Emma Stone', 'Ryan Gosling', 
-  //   'Charlize Theron'
-  // ];
-  directors: string[] = [] //'Poopy Pooppants', 'Milica Misic', 'Konjic'];
-  genres = Object.values(Genre)
+  directors: string[] = [];
+  genres = Object.values(Genre);
   newActor = '';
   newDirector = '';
   newSeries = '';
-  filmId: string = ''; //TODO: dobijace id iz roditeljske komponente tj. str koja prikazuje sve filmove ili str jednog filma
+  filmId: string = '';
   hasFileChanged: boolean = false
 
   constructor(
@@ -48,36 +55,35 @@ export class UpdateComponent implements OnInit{
   ) {}
 
   ngOnInit(): void {
-    // Fetch the film ID from route params
     this.route.params.subscribe(params => {
       this.filmId = params['id'];
       this.fetchFilmData();
     });
 
+    this.getActorsAndDirectors();
     this.getSeriesList();
   }
 
   fetchFilmData(): void {
-    this.filmService.getFilmById(this.filmId).subscribe(response => {
-      this.filmDTO = response;
+    this.filmService.getFilmByIdUpdate(this.filmId).subscribe(response => {
+      this.updateFilmDTO = response;
+      this.uploadFilmDTO = {
+        filmId: this.updateFilmDTO.filmId,
+        fileName: this.updateFilmDTO.fileName,
+        title: this.updateFilmDTO.title,
+        description: this.updateFilmDTO.description,
+        actors: this.updateFilmDTO.actors,
+        directors: this.updateFilmDTO.directors,
+        genres: this.updateFilmDTO.genres,
+        isSeries: this.updateFilmDTO.isSeries,
+        series: this.updateFilmDTO.series,
+        season: this.updateFilmDTO.season,
+        episode: this.updateFilmDTO.episode,
+        fileContent: ''
+      }
     }, error => {
       console.log('Error fetching film data', error);
     });
-
-    // this.filmDTO = {
-    //   id: this.filmId,
-    //   fileName: 'asdfasdf',
-    //   title: 'fasdfasdfas',
-    //   description: 'fadsfasdfasd',
-    //   actors: ['Christian Bale', 'Hugh Jackman', 'Emma Stone'],
-    //   directors: ['Poopy Pooppants'],
-    //   genres: ['comedy'],
-    //   isSeries: true,
-    //   series: 'Naruto',
-    //   season: 4,
-    //   episode: 1,
-    //   file: 'sadasdadasd'
-    // };
   }
 
   getActorsAndDirectors() {
@@ -93,7 +99,7 @@ export class UpdateComponent implements OnInit{
 
   onToggleSeries(event: any) {
     if (!event.target.checked) {
-      this.filmDTO.series = '';
+      this.uploadFilmDTO.series = '';
     }
   }
   getSeriesList() {
@@ -105,19 +111,20 @@ export class UpdateComponent implements OnInit{
   }
 
   onFileChange(event: Event): void {
+    this.hasFileChanged = true
     const inputElement = event.target as HTMLInputElement;
     if (inputElement.files && inputElement.files.length) {
       this.selectedFile = inputElement.files[0];
-      this.filmDTO.fileName = this.selectedFile.name;
+      this.uploadFilmDTO.fileName = this.selectedFile.name;
       this.convertFileToBase64(this.selectedFile)
-    } 
-    console.log(this.selectedFile);
+    }
   }
 
   convertFileToBase64(file: File): void {
     const reader = new FileReader();
     reader.onload = () => {
-      this.filmDTO.fileContent = reader.result as string;
+      const base64String = (reader.result as string).split(',')[1]; // Remove the prefix
+      this.uploadFilmDTO.fileContent = base64String;
     };
     reader.readAsDataURL(file);
   }
@@ -125,7 +132,7 @@ export class UpdateComponent implements OnInit{
   addNewActor(): void {
     if (this.newActor && !this.actors.includes(this.newActor)) {
       this.actors.push(this.newActor);
-      this.filmDTO.actors.push(this.newActor);
+      this.uploadFilmDTO.actors.push(this.newActor);
       this.newActor = '';
     }
   }
@@ -133,7 +140,7 @@ export class UpdateComponent implements OnInit{
   addNewDirector(): void {
     if (this.newDirector && !this.directors.includes(this.newDirector)) {
       this.directors.push(this.newDirector);
-      this.filmDTO.directors.push(this.newDirector);
+      this.uploadFilmDTO.directors.push(this.newDirector);
       this.newDirector = '';
     }
   }
@@ -141,26 +148,24 @@ export class UpdateComponent implements OnInit{
   addNewSeries(): void {
     if (this.newSeries && !this.seriesList.includes(this.newSeries)) {
       this.seriesList.push(this.newSeries);
-      this.filmDTO.series = this.newSeries;
+      this.uploadFilmDTO.series = this.newSeries;
       this.newSeries = '';
     }
   }
 
   onSubmit() {
     if(this.hasFileChanged) {
-      // this.filmService.updateFileChanged(this.filmDTO).subscribe(response => {
-      //   console.log('Update successful', response);
-      // }, error => {
-      //   console.log('Update failed', error);
-      // });
-      console.log(this.filmDTO)
+      this.filmService.upload(this.uploadFilmDTO).subscribe(response => {
+        console.log('Update with file successful', response);
+      }, error => {
+        console.log('Update with file failed', error);
+      });
     } else {
-      // this.filmService.update(this.filmDTO).subscribe(response => {
-      //   console.log('Update successful', response);
-      // }, error => {
-      //   console.log('Update failed', error);
-      // });
-      console.log(this.filmDTO)
+      this.filmService.update(this.uploadFilmDTO).subscribe(response => {
+        console.log('Update successful', response);
+      }, error => {
+        console.log('Update failed', error);
+      });
     }
   }
 

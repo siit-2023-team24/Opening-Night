@@ -7,6 +7,8 @@ import { ActorsAndDirectorsDTO } from '../shared/actorsAndDirectors';
 import { SeriesEpisodeDTO } from './model/series-episode';
 import { FilmCardDTO } from './model/film-card';
 import { FilmFeedDTO } from './model/film_feed';
+import { FilmDetailsDTO } from './model/film-details';
+import { UpdateFilmDTO } from './model/film-update';
 import { MessageResponse } from 'src/env/error-response';
 
 @Injectable({
@@ -24,12 +26,12 @@ export class FilmService {
     return this.http.post<UploadFilmDTO>(environment.apiHost + '/films', filmDTO);
   }
 
-  getFilmById(id: string): Observable<UploadFilmDTO> {
-    return this.http.get<UploadFilmDTO>(environment.apiHost + '/films/' + id);
+  getFilmById(id: string): Observable<FilmDetailsDTO> {
+    return this.http.get<FilmDetailsDTO>(environment.apiHost + '/films/' + id);
   }
 
-  updateFileChanged(filmDTO: UploadFilmDTO): Observable<UploadFilmDTO> {
-    return this.http.put<UploadFilmDTO>(environment.apiHost + '/films/update', filmDTO);
+  getFilmByIdUpdate(id: string): Observable<UpdateFilmDTO> {
+    return this.http.get<UpdateFilmDTO>(environment.apiHost + '/update/' + id);
   }
 
   update(filmDTO: UploadFilmDTO): Observable<UploadFilmDTO> {

@@ -24,17 +24,11 @@ export class UploadComponent implements OnInit {
   };
 
   selectedFile: File | undefined;
-  seriesList: string[] = [] //'One piece', 'Naruto', 'Fuji'];
+  seriesList: string[] = [];
 
-  actors: string[] = []
-  //   'Matt Damon', 'Leo Dicaprio', 'Jack Nicholson', 'Meryl Streep', 'Tom Hanks', 
-  //   'Robert De Niro', 'Al Pacino', 'Angelina Jolie', 'Brad Pitt', 'Johnny Depp', 
-  //   'Morgan Freeman', 'Scarlett Johansson', 'Natalie Portman', 'Jennifer Lawrence', 
-  //   'Denzel Washington', 'Christian Bale', 'Hugh Jackman', 'Emma Stone', 'Ryan Gosling', 
-  //   'Charlize Theron'
-  // ];
-  directors: string[] = [] // 'Poopy Pooppants', 'Milica Misic', 'Konjic'];
-  genres = Object.values(Genre)
+  actors: string[] = [];
+  directors: string[] = [];
+  genres = Object.values(Genre);
   newActor = '';
   newDirector = '';
   newSeries = '';
@@ -120,10 +114,6 @@ export class UploadComponent implements OnInit {
   }
 
   onSubmit() {
-    // console.log(this.filmDTO)
-    // console.log(this.filmDTO.series)
-    // console.log(this.filmDTO.season)
-    // console.log(this.filmDTO.episode)
     this.filmService.upload(this.filmDTO).subscribe({
       next: (response) => {
         console.log('Upload successful', response);

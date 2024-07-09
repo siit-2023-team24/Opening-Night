@@ -5,6 +5,16 @@
   <p><strong>Directors:</strong> {{ filmDTO.directors.join(', ') }}</p>
   <p><strong>Genres:</strong> {{ filmDTO.genres.join(', ') }}</p>
 
+  <!-- Video Quality Selection -->
+  <div class="quality-selection">
+    <label for="quality">Select Quality:</label>
+    <select id="quality" (change)="onQualityChange($event)">
+      <option value="original">Original</option>
+      <option value="360p">360p</option>
+      <option value="144p">144p</option>
+    </select>
+  </div>
+
   <!-- Video Player Section -->
   <div class="video-container" *ngIf="!filmDTO.isSeries">
     <video controls #videoPlayer>
@@ -16,7 +26,7 @@
   <!-- Series Section -->
   <div *ngIf="filmDTO.isSeries">
     <h3>{{ filmDTO.series }} - Season {{ filmDTO.season }} Episode {{ filmDTO.episode }}</h3>
-    <video controls [src]="filmDTO.fileContent"></video>
+    <video controls [src]="filmDTO.fileContentOriginal"></video>
 
     <!-- Episodes Grid -->
     <div class="episodes-grid">
@@ -31,7 +41,11 @@
     </div>
   </div>
 
-  <!-- <div class="full-width add-file-button">
-    <input type="file" (change)="onFileChange($event)">
-  </div> -->
+  <!-- Update and Delete Buttons -->
+  <div class="film-actions">
+    <button mat-raised-button color="primary">Download</button>
+    <button mat-raised-button color="primary" [routerLink]="'/update/' + filmDTO.filmId">Update</button>
+    <button mat-raised-button color="warn">Delete</button>
+  </div>
+
 </div>

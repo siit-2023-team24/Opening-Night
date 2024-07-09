@@ -28,7 +28,7 @@ def update(event, context):
                 'directors' : body['directors'],
                 'genres' : body['genres'],
                 'isSeries': body['isSeries'],
-                'series': body.get('series', None) # Optional field
+                'series': body.get('series', None)
             }
     )
 
