@@ -8,12 +8,11 @@ from aws_cdk import (
     BundlingOptions,
     aws_s3 as s3,
     RemovalPolicy,
-    aws_sqs as sqs,
-    aws_stepfunctions as sfn,
-    aws_stepfunctions_tasks as tasks,
     aws_lambda_event_sources as eventsources,
     aws_cognito as cognito,
     aws_ssm as ssm,
+    aws_events as events,
+    aws_events_targets as targets,
     aws_sqs as sqs,
     aws_stepfunctions as sfn,
     aws_stepfunctions_tasks as tasks,
@@ -26,8 +25,6 @@ class OpeningNightStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
-
-        user_roles = ['admin', 'viewer']
 
         user_pool = cognito.UserPool(self, "Opening-Night-Pool",
             user_pool_name="opening-night-user-pool",
@@ -47,7 +44,7 @@ class OpeningNightStack(Stack):
             ),
             account_recovery=cognito.AccountRecovery.NONE,
             custom_attributes={
-                "is_viewer": cognito.BooleanAttribute()
+                "is_viewer": cognito.StringAttribute()
             }
         )
 
@@ -59,25 +56,32 @@ class OpeningNightStack(Stack):
             generate_secret=False
         )
 
-        ssm.StringParameter(self, "UserPoolId",
-            parameter_name="pool_id",
-            string_value=user_pool.user_pool_id
-        )
-
-        ssm.StringParameter(self, "UserPoolClientId",
-            parameter_name="client_id",
-            string_value=user_pool_client.user_pool_client_id
-        )
-
         opening_nights_table= dynamodb.Table(
-            self, "Films-Table",
-            table_name="films-table",
+            self, "Opening-Night-Table",
+            table_name="opening-night-table",
             partition_key=dynamodb.Attribute(
                 name="filmId",
                 type=dynamodb.AttributeType.STRING
             ),
             read_capacity=1,
             write_capacity=1,
+            stream=dynamodb.StreamViewType.NEW_IMAGE
+        )
+
+        search_table = dynamodb.Table(
+            self, "Search-Table",
+            table_name="search-table",
+            partition_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name='data', type=dynamodb.AttributeType.STRING),
+            read_capacity=1,
+            write_capacity=1
+        )
+
+        search_table.add_global_secondary_index(
+            index_name="search-index",
+            partition_key=dynamodb.Attribute(name='data', type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name='filmId', type=dynamodb.AttributeType.STRING),
+            projection_type=dynamodb.ProjectionType.ALL
         )
 
         subs_table= dynamodb.Table(
@@ -124,8 +128,8 @@ class OpeningNightStack(Stack):
             write_capacity=1
         )
 
-        opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket",
-            bucket_name="opening-night-bucket",
+        opening_nights_bucket = s3.Bucket(self, "Opening-Night-Bucket1",
+            bucket_name="opening-night-bucket1",
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             block_public_access = s3.BlockPublicAccess.BLOCK_ALL
@@ -153,34 +157,62 @@ class OpeningNightStack(Stack):
                     "dynamodb:PutItem",
                     "dynamodb:UpdateItem",
                     "dynamodb:DeleteItem",
+                    "dynamodb:BatchWriteItem",
                     "s3:PutObject",
                     "s3:PutObjectAcl",
                     "s3:GetObject",
                     "s3:GetObjectAcl",
                     "s3:DeleteObject",
-                    "ssm:GetParameter", # register, login
                     "cognito-idp:AdminConfirmSignUp", # register
-                    "cognito-idp:ListUsers" # register
+                    "cognito-idp:ListUsers", # register
+                    "cognito-idp:AdminGetUser", # authorize
+                    "sns:CreateTopic",
+                    "sns:ListTopics",
+                    "sns:Subscribe"
                 ],
                 resources=[opening_nights_table.table_arn,
+                           search_table.table_arn,
+                           f"{search_table.table_arn}/index/search-index",
                            subs_table.table_arn,
                            ratings_table.table_arn,
                            f"{ratings_table.table_arn}/index/username-index",
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
                            opening_nights_bucket.bucket_arn + "/*",
-                           "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
-                           "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
-                           f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
+                           user_pool.user_pool_arn # register
+                           ]
             )
         )
 
-        
-        #TODO razdvojiti prava
+        sns_lambda_role = iam.Role(
+            self, "SNSLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        sns_lambda_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+        )
+        sns_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "sns:CreateTopic",
+                    "sns:ListTopics",
+                    "sns:Subscribe",
+                    "sns:Publish"
+                ],
+                resources=[subs_table.table_arn, "*"]
+            )
+        )
 
 
-
-        def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
+        def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var='', is_viewer='false'):
             function = _lambda.Function(
                 self, id,
                 runtime=_lambda.Runtime.PYTHON_3_9,
@@ -192,7 +224,7 @@ class OpeningNightStack(Stack):
                         command=[
                             "bash", "-c",
                             "pip install --no-cache -r requirements.txt -t /asset-output && cp -r . /asset-output"
-                        ]
+                        ],
                     ),),
                 memory_size=128,
                 timeout=Duration.seconds(60),
@@ -202,8 +234,12 @@ class OpeningNightStack(Stack):
                     'RATINGS_TABLE_NAME': ratings_table.table_name,
                     'DOWNLOADS_TABLE_NAME': downloads_log_table.table_name,
                     'FEED_TABLE_NAME': feed_table.table_name,
+                    'SEARCH_TABLE_NAME': search_table.table_name,
                     'BUCKET_NAME': opening_nights_bucket.bucket_name,
-                    'CUSTOM_VAR': env_var
+                    'CUSTOM_VAR': env_var,
+                    'POOL_ID': user_pool.user_pool_id,
+                    'CLIENT_ID': user_pool_client.user_pool_client_id,
+                    'IS_VIEWER': is_viewer
                 },
                 role=role
             )
@@ -233,29 +269,35 @@ class OpeningNightStack(Stack):
         
         authorize_viewer_lambda = create_lambda_function(
             "authorizeViewer",
-            "authorize_viewer.authorize",
+            "authorize.authorize",
             "lambdas/authorization",
             "GET",
-            []
+            [],
+            is_viewer='true'
         )
 
         authorize_admin_lambda = create_lambda_function(
             "authorizeAdmin",
-            "authorize_admin.authorize",
+            "authorize.authorize",
             "lambdas/authorization",
             "GET",
             []
         )
 
-        # authorizer = apigateway.CognitoUserPoolsAuthorizer(self, "CognitoAuthorizer",
-        #     cognito_user_pools=[user_pool]
-        # )
+        authorize_user_lambda = create_lambda_function(
+            "authorizeUser",
+            "authorize.authorize",
+            "lambdas/authorization",
+            "GET",
+            [],
+            is_viewer='both'
+        )
 
-        # viewer_authorizer = apigateway.RequestAuthorizer(self, "ViewerAuthorizer",
-        #     handler = authorize_viewer_lambda,
-        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
-        #     results_cache_ttl=Duration.seconds(0)
-        # )
+        viewer_authorizer = apigateway.RequestAuthorizer(self, "ViewerAuthorizer",
+            handler = authorize_viewer_lambda,
+            identity_sources=[apigateway.IdentitySource.header("Authorization")],
+            results_cache_ttl=Duration.seconds(0)
+        )
 
         # admin_authorizer = apigateway.RequestAuthorizer(self, "AdminAuthorizer",
         #     handler = authorize_admin_lambda,
@@ -283,6 +325,7 @@ class OpeningNightStack(Stack):
             "lambdas/updateSubscriptions",
             "POST",
             [],
+            role=sns_lambda_role,
             env_var=feed_queue.queue_url
           )  
 
@@ -315,7 +358,8 @@ class OpeningNightStack(Stack):
             "update_film.update",
             "lambdas/updateFilm",
             "PUT",
-            []
+            [],
+            env_var=feed_queue.queue_url
         )
 
         update_film_file_changed_lambda = create_lambda_function(
@@ -493,6 +537,55 @@ class OpeningNightStack(Stack):
             []
         )
 
+        search_lambda = create_lambda_function(
+            "search",
+            "search.search",
+            "lambdas/search",
+            "GET",
+            [],
+            env_var=search_table.table_name
+        )
+
+        search_filter_lambda = create_lambda_function(
+            "searchFilter",
+            "search_filter.search_filter",
+            "lambdas/search",
+            "GET",
+            []
+        )
+
+        delete_lambda = create_lambda_function(
+            "deleteFilm",
+            "delete_film.delete",
+            "lambdas/deleteFilm",
+            "DELETE",
+            [],
+            env_var=feed_queue.queue_url
+        )
+
+        #check subs for sns
+
+        check_subscriptions_lambda = create_lambda_function(
+            "checkSubs",
+            "check_subscriptions.check",
+            "lambdas/checkSubs",
+            "",
+            [],
+            sns_lambda_role,
+            feed_queue.queue_url
+        )
+
+        db_event_source = eventsources.DynamoEventSource(
+            opening_nights_table,
+            starting_position=_lambda.StartingPosition.LATEST,
+            batch_size=1,
+            bisect_batch_on_error=True,
+            retry_attempts=0,
+            # filters=[_lambda.FilterCriteria.filter({"event_name": _lambda.FilterRule.not_equals("DELETE")})]
+         )
+        check_subscriptions_lambda.add_event_source(db_event_source)
+
+
         #Feed step
 
         calc_downloads_score_lambda = create_lambda_function(
@@ -567,7 +660,7 @@ class OpeningNightStack(Stack):
         feed_definition = feed_parallel_tasks
 
         feed_step_function = sfn.StateMachine(
-            self, "FeedStateMashine",
+            self, "FeedStateMachine",
             definition_body=sfn.DefinitionBody.from_chainable(feed_definition),
             comment='Determine and persist feed for user'
         )
@@ -629,7 +722,7 @@ class OpeningNightStack(Stack):
         upload_film_integration = apigateway.LambdaIntegration(upload_film_lambda)
         films.add_method("POST", upload_film_integration)
         get_all_films_integration = apigateway.LambdaIntegration(get_all_films_lambda)
-        films.add_method("GET", get_all_films_integration)
+        films.add_method("GET", get_all_films_integration, authorizer=viewer_authorizer)
 
         film = opening_nights_api.root.add_resource("{name}")
         download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
@@ -638,6 +731,9 @@ class OpeningNightStack(Stack):
         film_by_id = films.add_resource("{id}")
         get_film_by_id_integration = apigateway.LambdaIntegration(get_film_by_id_lambda)
         film_by_id.add_method("GET", get_film_by_id_integration)
+
+        delete_integration = apigateway.LambdaIntegration(delete_lambda)
+        film_by_id.add_method("DELETE", delete_integration)
 
         update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
         films.add_method("PUT", update_film_integration)
@@ -687,4 +783,12 @@ class OpeningNightStack(Stack):
         feed = opening_nights_api.root.add_resource("feed").add_resource("{username}")
         get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
         feed.add_method("GET", get_feed_integration)
+
+        search = opening_nights_api.root.add_resource("search").add_resource("{input}")
+        search_integration = apigateway.LambdaIntegration(search_lambda)
+        search.add_method("GET", search_integration) 
+
+        search_filter = opening_nights_api.root.add_resource("search-filter").add_resource("{input}")
+        search_filter_integration = apigateway.LambdaIntegration(search_filter_lambda)
+        search_filter.add_method("GET", search_filter_integration) 
 

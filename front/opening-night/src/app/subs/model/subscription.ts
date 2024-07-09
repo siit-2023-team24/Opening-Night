@@ -1,5 +1,6 @@
 export interface SubscriptionDTO {
     directors: string[],
     actors: string[],
-    genres: string[]
+    genres: string[],
+    email?: string
 }

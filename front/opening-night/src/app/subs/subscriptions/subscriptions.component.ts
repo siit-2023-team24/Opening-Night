@@ -18,6 +18,7 @@ export class SubscriptionsComponent implements OnInit {
   subscription: SubscriptionDTO = {directors: [], actors: [], genres: []}
 
   username = "";
+  email = "parabucki.sonja@gmail.com"
 
   genres = Object.values(Genre)
   directors: string[] = []
@@ -142,6 +143,7 @@ export class SubscriptionsComponent implements OnInit {
 
   updateSubs(): void {
     if (!this.username) return;
+    this.subscription.email = this.email
     console.log(this.subscription);
 
     this.service.update(this.username, this.subscription).subscribe({

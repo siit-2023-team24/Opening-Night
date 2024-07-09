@@ -1,8 +1,8 @@
 import boto3
 import json
+import os
 
 client = boto3.client('cognito-idp')
-ssm_client = boto3.client('ssm')
 
 def login(event, context):
     body = json.loads(event['body'])
@@ -10,10 +10,7 @@ def login(event, context):
     username = body['username']
     password = body['password']
 
-    response = ssm_client.get_parameter(
-        Name='client_id'
-    )
-    client_id = response['Parameter']['Value']
+    client_id = os.environ['CLIENT_ID']
 
     try:
         response = client.initiate_auth(

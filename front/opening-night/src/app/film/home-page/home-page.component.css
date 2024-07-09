@@ -1,6 +1,6 @@
 .search-field {
 width: 300px;
-margin: 20px auto;
+margin-right: 20px;
 }
 
 .film-grid {
@@ -26,4 +26,29 @@ background-color: #ccc;
 text-align: center;
 margin-top: 20px;
 }
-  
+
+.filterForm {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 20px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.396);
+}
+
+.search {
+    display: flex;
+    flex-direction: row;
+    margin: 20px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.396);
+}
+
+
+.dark-blue-button-wrapper ::ng-deep .blueBtn {
+    background-color: #0C4A60;
+    color: white;
+}
+
+.dark-orange-button-wrapper ::ng-deep .orangeBtn {
+    background-color: #EF6C33;
+    color: white;
+}
