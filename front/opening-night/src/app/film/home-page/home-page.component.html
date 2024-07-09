@@ -48,7 +48,7 @@
     <mat-card [routerLink]="'/film/' + film.filmId">
       <mat-card-header>
         <mat-card-title>{{ film.title }}</mat-card-title>
-        <mat-card-subtitle *ngIf="film.isSeries">S:{{ film.season }} E:{{ film.episode }}</mat-card-subtitle>
+        <mat-card-subtitle *ngIf="film.isSeries">Series</mat-card-subtitle>
         <mat-card-subtitle *ngIf="!film.isSeries">Film</mat-card-subtitle>
       </mat-card-header>
     </mat-card>

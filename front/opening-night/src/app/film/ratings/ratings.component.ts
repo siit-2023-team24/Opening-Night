@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { RatingService } from '../rating.service';
 import { Rating } from '../model/rating';
 import { MessageResponse } from 'src/env/error-response';
+import { AuthService } from 'src/app/auth/auth.service';
 
 @Component({
   selector: 'app-ratings',
@@ -34,7 +35,7 @@ export class RatingsComponent implements OnInit {
     // {username: 'test', filmId: 'f123', timestamp: '12.12.1212.', stars: 4}
   ];
 
-  constructor(private service: RatingService) {}
+  constructor(private service: RatingService, private authService: AuthService) {}
 
   ngOnInit(): void {
     this.service.get(this.filmId).subscribe({
@@ -65,8 +66,8 @@ export class RatingsComponent implements OnInit {
       return;
     }
 
-    //TODO
-    const username = 'test';
+    //TODO DONE?
+    const username = this.authService.getUsername();
     
     const dto: Rating = {
       filmId: this.filmId,

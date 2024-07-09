@@ -57,8 +57,8 @@ class OpeningNightStack(Stack):
         )
 
         opening_nights_table= dynamodb.Table(
-            self, "Opening-Night-Table",
-            table_name="opening-night-table",
+            self, "Films-Table",
+            table_name="films-table",
             partition_key=dynamodb.Attribute(
                 name="filmId",
                 type=dynamodb.AttributeType.STRING
@@ -299,11 +299,17 @@ class OpeningNightStack(Stack):
             results_cache_ttl=Duration.seconds(0)
         )
 
-        # admin_authorizer = apigateway.RequestAuthorizer(self, "AdminAuthorizer",
-        #     handler = authorize_admin_lambda,
-        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
-        #     results_cache_ttl=Duration.seconds(0)
-        # )
+        admin_authorizer = apigateway.RequestAuthorizer(self, "AdminAuthorizer",
+            handler = authorize_admin_lambda,
+            identity_sources=[apigateway.IdentitySource.header("Authorization")],
+            results_cache_ttl=Duration.seconds(0)
+        )
+
+        user_authorizer = apigateway.RequestAuthorizer(self, "UserAuthorizer",
+            handler = authorize_user_lambda,
+            identity_sources=[apigateway.IdentitySource.header("Authorization")],
+            results_cache_ttl=Duration.seconds(0)
+        )
         
         # trans_layer = PythonLayerVersion(
         #     self, 'TransLambdaLayer',
@@ -580,8 +586,7 @@ class OpeningNightStack(Stack):
             starting_position=_lambda.StartingPosition.LATEST,
             batch_size=1,
             bisect_batch_on_error=True,
-            retry_attempts=0,
-            # filters=[_lambda.FilterCriteria.filter({"event_name": _lambda.FilterRule.not_equals("DELETE")})]
+            retry_attempts=0
          )
         check_subscriptions_lambda.add_event_source(db_event_source)
 
@@ -720,57 +725,57 @@ class OpeningNightStack(Stack):
 
         films = opening_nights_api.root.add_resource("films")
         upload_film_integration = apigateway.LambdaIntegration(upload_film_lambda)
-        films.add_method("POST", upload_film_integration)
+        films.add_method("POST", upload_film_integration, authorizer=admin_authorizer)
         get_all_films_integration = apigateway.LambdaIntegration(get_all_films_lambda)
-        films.add_method("GET", get_all_films_integration, authorizer=viewer_authorizer)
+        films.add_method("GET", get_all_films_integration, authorizer=user_authorizer)
 
         film = opening_nights_api.root.add_resource("{name}")
         download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
-        film.add_method("GET", download_film_integration)
+        film.add_method("GET", download_film_integration, authorizer=viewer_authorizer)
 
         film_by_id = films.add_resource("{id}")
         get_film_by_id_integration = apigateway.LambdaIntegration(get_film_by_id_lambda)
-        film_by_id.add_method("GET", get_film_by_id_integration)
+        film_by_id.add_method("GET", get_film_by_id_integration, authorizer=user_authorizer)
 
         delete_integration = apigateway.LambdaIntegration(delete_lambda)
-        film_by_id.add_method("DELETE", delete_integration)
+        film_by_id.add_method("DELETE", delete_integration, authorizer=admin_authorizer)
 
         update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
-        films.add_method("PUT", update_film_integration)
+        films.add_method("PUT", update_film_integration, authorizer=admin_authorizer)
 
         update_film_file_changed_integration = apigateway.LambdaIntegration(update_film_file_changed_lambda)
         film_update_file = films.add_resource('update')
-        film_update_file.add_method('PUT', update_film_file_changed_integration)
+        film_update_file.add_method('PUT', update_film_file_changed_integration, authorizer=admin_authorizer)
 
         subs_resource = opening_nights_api.root.add_resource('subscriptions')
         subs = subs_resource.add_resource("{username}")
         
         update_subscriptions_integration = apigateway.LambdaIntegration(update_subscriptions_lambda,
                                                                         request_templates={'application/json': '{"statusCode": 200}'})
-        subs.add_method("POST", update_subscriptions_integration)
+        subs.add_method("POST", update_subscriptions_integration, authorizer=viewer_authorizer)
 
         get_subscriptions_integration = apigateway.LambdaIntegration(get_subscriptions_lambda)
-        subs.add_method("GET", get_subscriptions_integration)
+        subs.add_method("GET", get_subscriptions_integration, authorizer=viewer_authorizer)
 
         actors_and_directors = opening_nights_api.root.add_resource("actors-and-directors")
         get_actors_and_directors_integration = apigateway.LambdaIntegration(get_actors_and_directors_lambda)
-        actors_and_directors.add_method("GET", get_actors_and_directors_integration)
+        actors_and_directors.add_method("GET", get_actors_and_directors_integration, authorizer=user_authorizer)
 
         series_resource = films.add_resource("series")
         get_series_list_integration = apigateway.LambdaIntegration(get_series_list_lambda)
-        series_resource.add_method("GET", get_series_list_integration)
+        series_resource.add_method("GET", get_series_list_integration, authorizer=user_authorizer)
 
         series_episodes_resource = series_resource.add_resource("{seriesName}").add_resource("episodes")
         get_episodes_by_series_integration = apigateway.LambdaIntegration(get_episodes_by_series_lambda)
-        series_episodes_resource.add_method("GET", get_episodes_by_series_integration)
+        series_episodes_resource.add_method("GET", get_episodes_by_series_integration, authorizer=user_authorizer)
 
         ratings = opening_nights_api.root.add_resource("ratings")
         rate_film_integration = apigateway.LambdaIntegration(rate_film_lambda)
-        ratings.add_method("POST", rate_film_integration)
+        ratings.add_method("POST", rate_film_integration, authorizer=viewer_authorizer)
 
         film_ratings = ratings.add_resource("{filmId}")
         get_ratings_for_film_integration = apigateway.LambdaIntegration(get_ratings_for_film_lambda)
-        film_ratings.add_method("GET", get_ratings_for_film_integration)
+        film_ratings.add_method("GET", get_ratings_for_film_integration, authorizer=user_authorizer)
         
         login = opening_nights_api.root.add_resource("login")
         login_integration = apigateway.LambdaIntegration(login_lambda)
@@ -782,13 +787,13 @@ class OpeningNightStack(Stack):
 
         feed = opening_nights_api.root.add_resource("feed").add_resource("{username}")
         get_feed_integration = apigateway.LambdaIntegration(get_feed_lambda)
-        feed.add_method("GET", get_feed_integration)
+        feed.add_method("GET", get_feed_integration, authorizer=viewer_authorizer)
 
         search = opening_nights_api.root.add_resource("search").add_resource("{input}")
         search_integration = apigateway.LambdaIntegration(search_lambda)
-        search.add_method("GET", search_integration) 
+        search.add_method("GET", search_integration, authorizer=user_authorizer)
 
         search_filter = opening_nights_api.root.add_resource("search-filter").add_resource("{input}")
         search_filter_integration = apigateway.LambdaIntegration(search_filter_lambda)
-        search_filter.add_method("GET", search_filter_integration) 
+        search_filter.add_method("GET", search_filter_integration, authorizer=user_authorizer)
 

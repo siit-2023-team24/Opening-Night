@@ -6,6 +6,7 @@ import { Genre } from 'src/app/shared/genre';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MessageResponse } from 'src/env/error-response';
 import { ActorsAndDirectorsDTO } from 'src/app/shared/actorsAndDirectors';
+import { AuthService } from 'src/app/auth/auth.service';
 
 
 @Component({
@@ -33,7 +34,8 @@ export class SubscriptionsComponent implements OnInit {
 
   constructor(private service: SubsService,
               private formBuilder: FormBuilder,
-              private snackBar: MatSnackBar) {
+              private snackBar: MatSnackBar,
+              private authService: AuthService) {
     this.genreForm = this.formBuilder.group({genre: [null]})
     this.directorsForm = this.formBuilder.group({director: [null]});
     this.actorsForm = this.formBuilder.group({actor: [null]});
@@ -41,8 +43,8 @@ export class SubscriptionsComponent implements OnInit {
 
   ngOnInit(): void {
 
-    //TODO get username
-    this.username = "test"
+    //TODO DONE?
+    this.username = this.authService.getUsername()
 
     this.service.get(this.username).subscribe({
       next: (data: SubscriptionDTO) => {

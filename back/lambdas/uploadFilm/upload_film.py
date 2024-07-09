@@ -11,3 +11,13 @@ def upload(event, context):
         stateMachineArn=state_machine_arn,
         input=json.dumps(event)
     )
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+        },
+        'body': json.dumps({
+            'message': 'Successfully uploaded movie!'
+        })
+    }
+
