@@ -35,3 +35,13 @@ def upload(event, context):
                 'series': body.get('series', None)
             })
     )
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+        },
+        'body': json.dumps({
+            'message': 'Successfully uploaded movie!'
+        })
+    }
+

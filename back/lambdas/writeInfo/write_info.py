@@ -19,11 +19,35 @@ def create(body, context):
                 'directors' : body['directors'],
                 'genres' : body['genres'],
                 'isSeries': body['isSeries'],
-                'series': body.get('series', None)
+                'series': body.get('series', None),
+                'season': body.get('season', None),
+                'episode': body.get('episode', None)
             }
     )
 
-    return {
+    table_name = os.environ['SEARCH_TABLE_NAME']
+    table = dynamodb.Table(table_name)
+
+    genres = ""
+    for g in body['genres']:
+        genres += g + ','
+    directors = ""
+    for d in body['directors']:
+        directors += d + ','
+    actors = ''
+    for a in body['actors']:
+        actors += a + ','
+
+    data = body['title'] + '-' + genres[:-1] + '-' + directors[:-1] + '-' + actors[:-1]
+
+    table.put_item(
+        Item = {
             'filmId': film_id,
-            'fileName' : body['fileName']
-            }
+            'data': data
+        }
+    )
+
+    return {
+          'filmId': film_id,
+          'fileName' : body['fileName']
+          }

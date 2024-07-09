@@ -8,16 +8,21 @@ import { HomePageComponent } from './film/home-page/home-page.component';
 import { FeedComponent } from './film/feed/feed.component';
 import { RegisterComponent } from './users/register/register.component';
 import { LoginComponent } from './users/login/login.component';
+import { AuthGuard } from './auth/guard';
+import { SeriesComponent } from './film/series/series.component';
 
 const routes: Routes = [
-  {component: SubscriptionsComponent, path: "subs"},
-  {component: UploadComponent, path: "upload"},
-  {component: UpdateComponent, path: "update/:id"},
-  {component: FilmPageComponent, path: "film/:id"},
+  {component: SubscriptionsComponent, path: "subs", canActivate: [AuthGuard], data : {role: ['viewer']}},
+  {component: UploadComponent, path: "upload", canActivate: [AuthGuard], data : {role: ['admin']}},
+  {component: UpdateComponent, path: "update/:id", canActivate: [AuthGuard], data : {role: ['admin']}},
+  {component: FilmPageComponent, path: "film/:id", canActivate: [AuthGuard], data : {role: ['viewer', 'admin']}},
   {component: HomePageComponent, path: "home"},
-  {component: FeedComponent, path: "feed"},
-  {component: RegisterComponent, path: "register"},
-  {component: LoginComponent, path: "login"}
+  {component: FeedComponent, path: "feed", canActivate: [AuthGuard], data : {role: ['viewer']}},
+  {component: RegisterComponent, path: "register", canActivate: [AuthGuard], data : {role: ['none']}},
+  {component: LoginComponent, path: "login", canActivate: [AuthGuard], data : {role: ['none']}},
+  {component: SeriesComponent, path: "series/:name", canActivate: [AuthGuard], data : {role: ['viewer', 'admin']}},
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: '**', redirectTo: 'home' }
 ];
 
 @NgModule({

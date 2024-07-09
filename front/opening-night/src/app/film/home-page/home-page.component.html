@@ -1,7 +1,46 @@
-<!-- Search Bar -->
-<mat-form-field class="search-field">
-  <input matInput placeholder="Search films..." [(ngModel)]="searchTerm" (input)="search()">
-</mat-form-field>
+<div>
+  <div class="search">
+    <mat-form-field class="search-field">
+      <input matInput placeholder="Search films..." [(ngModel)]="searchTerm">
+    </mat-form-field>
+    
+    <div class="subs dark-blue-button-wrapper">
+      <button (click)="search()" mat-raised-button class="blueBtn">Search</button>
+    </div>
+  </div>
+  
+  <form [formGroup]="filterForm" class="filterForm">
+        
+            <mat-form-field >
+                <mat-label>Title</mat-label>
+                <input matInput formControlName="title" type="text" name="title" placeholder="Title"/>
+                <mat-error *ngIf="filterForm.get('title')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+  
+            <mat-form-field>
+                <mat-label>Genres</mat-label>
+                <input matInput formControlName="genres" type="text" name="genres" placeholder="action, commedy"/>
+                <mat-error *ngIf="filterForm.get('genres')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+  
+            <mat-form-field>
+                <mat-label>Director(s)</mat-label>
+                <input matInput type="text" name="directors" formControlName="directors" placeholder="">
+                <mat-error *ngIf="filterForm.get('directors')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+  
+            <mat-form-field>
+                <mat-label>Actors</mat-label>
+                <input matInput type="text" name="actors" formControlName="actors" placeholder="">
+                <mat-error *ngIf="filterForm.get('actors')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+            
+            <div class="subs dark-blue-button-wrapper">
+              <button (click)="filterSearch()" mat-raised-button class="blueBtn">Filter</button>
+            </div>
+  </form>
+
+</div>
 
 <!-- Film Cards Grid -->
 <div class="film-grid" *ngIf="films.length > 0">
@@ -9,7 +48,7 @@
     <mat-card [routerLink]="'/film/' + film.filmId">
       <mat-card-header>
         <mat-card-title>{{ film.title }}</mat-card-title>
-        <mat-card-subtitle *ngIf="film.isSeries">S:{{ film.season }} E:{{ film.episode }}</mat-card-subtitle>
+        <mat-card-subtitle *ngIf="film.isSeries">Series</mat-card-subtitle>
         <mat-card-subtitle *ngIf="!film.isSeries">Film</mat-card-subtitle>
       </mat-card-header>
     </mat-card>
