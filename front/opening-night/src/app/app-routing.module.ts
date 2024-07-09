@@ -9,6 +9,7 @@ import { FeedComponent } from './film/feed/feed.component';
 import { RegisterComponent } from './users/register/register.component';
 import { LoginComponent } from './users/login/login.component';
 import { AuthGuard } from './auth/guard';
+import { SeriesComponent } from './film/series/series.component';
 
 const routes: Routes = [
   {component: SubscriptionsComponent, path: "subs", canActivate: [AuthGuard], data : {role: ['viewer']}},
@@ -19,6 +20,7 @@ const routes: Routes = [
   {component: FeedComponent, path: "feed", canActivate: [AuthGuard], data : {role: ['viewer']}},
   {component: RegisterComponent, path: "register", canActivate: [AuthGuard], data : {role: ['none']}},
   {component: LoginComponent, path: "login", canActivate: [AuthGuard], data : {role: ['none']}},
+  {component: SeriesComponent, path: "series/:name", canActivate: [AuthGuard], data : {role: ['viewer', 'admin']}},
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: '**', redirectTo: 'home' }
 ];

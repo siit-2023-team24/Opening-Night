@@ -3,6 +3,7 @@ import { FilmService } from '../film.service';
 import { UploadFilmDTO } from '../model/upload-film';
 import { ActorsAndDirectorsDTO } from 'src/app/shared/actorsAndDirectors';
 import { Genre } from 'src/app/shared/genre';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-upload',
@@ -38,7 +39,7 @@ export class UploadComponent implements OnInit {
   newDirector = '';
   newSeries = '';
 
-  constructor(private filmService: FilmService) {}
+  constructor(private filmService: FilmService, private router: Router) {}
 
   ngOnInit(): void {
     this.getSeriesList();
@@ -123,11 +124,14 @@ export class UploadComponent implements OnInit {
     // console.log(this.filmDTO.series)
     // console.log(this.filmDTO.season)
     // console.log(this.filmDTO.episode)
-    this.filmService.upload(this.filmDTO).subscribe(response => {
-      console.log('Upload successful', response);
-    }, error => {
-      console.log('Upload failed', error);
+    this.filmService.upload(this.filmDTO).subscribe({
+      next: (response) => {
+        console.log('Upload successful', response);
+        this.router.navigate(['home']);
+      },
+      error: (error) => {
+        console.log('Upload failed', error);
+      }
     });
   }
-
 }

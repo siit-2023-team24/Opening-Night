@@ -13,6 +13,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from '../shared/shared.module';
 import { RatingCardComponent } from './rating-card/rating-card.component';
 import { FeedComponent } from './feed/feed.component';
+import { SeriesComponent } from './series/series.component';
 
 
 
@@ -24,7 +25,8 @@ import { FeedComponent } from './feed/feed.component';
     HomePageComponent,
     RatingsComponent,
     RatingCardComponent,
-    FeedComponent
+    FeedComponent,
+    SeriesComponent
   ],
   imports: [
     CommonModule,

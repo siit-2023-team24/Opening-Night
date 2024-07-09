@@ -24,7 +24,9 @@ def create(event, context):
                 'directors' : body['directors'],
                 'genres' : body['genres'],
                 'isSeries': body['isSeries'],
-                'series': body.get('series', None)
+                'series': body.get('series', None),
+                'season': body.get('season', None),
+                'episode': body.get('episode', None)
             }
     )
 

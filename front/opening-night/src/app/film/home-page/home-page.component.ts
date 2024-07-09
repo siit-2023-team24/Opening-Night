@@ -35,14 +35,14 @@ export class HomePageComponent implements OnInit{
   }
 
   fetchFilms(): void {
-    this.filmService.getAllFilms().subscribe(
-      (films: FilmCardDTO[]) => {
+    this.filmService.getAllFilms().subscribe({
+      next: (films: FilmCardDTO[]) => {
         this.films = films;
       },
-      error => {
+      error: (error) => {
         console.error('Error fetching films:', error);
       }
-    );
+    });
 
     // const filmDTO = {
     //   id: 1,
@@ -58,14 +58,25 @@ export class HomePageComponent implements OnInit{
 
   search(): void {
     console.log(this.searchTerm);
-    this.filmService.search(this.searchTerm).subscribe({
-      next: (data: FilmCardDTO[]) => {
-        this.films = data;
-      },
-      error: (error: MessageResponse) => {
-        console.log(error.message);
-      }
-    });
+    if (!this.searchTerm) {
+      this.filmService.getAllFilms().subscribe({
+        next: (films: FilmCardDTO[]) => {
+          this.films = films;
+        },
+        error: (error) => {
+          console.error('Error fetching films:', error);
+        }
+      });
+    } else {
+      this.filmService.search(this.searchTerm).subscribe({
+        next: (data: FilmCardDTO[]) => {
+          this.films = data;
+        },
+        error: (error: MessageResponse) => {
+          console.log(error.message);
+        }
+      });
+    }
   }
 
 
