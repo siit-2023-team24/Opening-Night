@@ -59,7 +59,7 @@ def remove_from_feed(filmId):
 
     for item in items:
         for film in item['films']:
-            if filmId == film[0]['filmId']:
+            if filmId == film['filmId']:
                 sqs.send_message(
                     QueueUrl=queue_url,
                     MessageBody=item['username']

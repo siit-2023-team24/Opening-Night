@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { UploadFilmDTO } from '../model/upload-film';
 import { ENTER, COMMA } from '@angular/cdk/keycodes';
 import { FilmService } from '../film.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Genre } from 'src/app/shared/genre';
 import { ActorsAndDirectorsDTO } from 'src/app/shared/actorsAndDirectors';
 import { FilmDetailsDTO } from '../model/film-details';
@@ -51,7 +51,8 @@ export class UpdateComponent implements OnInit{
 
   constructor(
     private filmService: FilmService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -157,12 +158,14 @@ export class UpdateComponent implements OnInit{
     if(this.hasFileChanged) {
       this.filmService.upload(this.uploadFilmDTO).subscribe(response => {
         console.log('Update with file successful', response);
+        this.router.navigate(['film/' + this.filmId])
       }, error => {
         console.log('Update with file failed', error);
       });
     } else {
       this.filmService.update(this.uploadFilmDTO).subscribe(response => {
         console.log('Update successful', response);
+        this.router.navigate(['film/' + this.filmId])
       }, error => {
         console.log('Update failed', error);
       });

@@ -11,18 +11,18 @@ def delete(event, context):
     path_params = event.get('pathParameters', {})
     filmId = path_params.get('id')
     
-    try:
-        remove_from_films(filmId)
-        remove_from_search_table(filmId)
-        remove_from_bucket(filmId)
-        remove_from_ratings(filmId)
-        remove_from_feed(filmId)
-        status = 200
-        message = 'Film deleted: ' + filmId
-    except BaseException as e:
-        print(e)
-        status = 500
-        message = 'Error while deleting film ' + filmId
+    # try:
+    remove_from_films(filmId)
+    remove_from_search_table(filmId)
+    remove_from_bucket(filmId)
+    remove_from_ratings(filmId)
+    remove_from_feed(filmId)
+    status = 200
+    message = 'Film deleted: ' + filmId
+    # except BaseException as e:
+    #     print(e)
+    #     status = 500
+    #     message = 'Error while deleting film ' + filmId
     
     response_body = {'message': message}
     return { 
@@ -89,7 +89,7 @@ def remove_from_feed(filmId):
 
     for item in items:
         for film in item['films']:
-            if filmId == film[0]['filmId']:
+            if filmId == film['filmId']:
                 sqs.send_message(
                     QueueUrl=queue_url,
                     MessageBody=item['username']

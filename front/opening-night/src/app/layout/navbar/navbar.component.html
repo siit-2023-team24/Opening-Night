@@ -11,10 +11,6 @@
     <div *ngIf="role!='none'" class="transparent-button-wrapper">
         <button class="tranparentBtn" [routerLink]="['/home']" mat-flat-button>Home</button>
     </div>
-
-    <!-- <div *ngIf="role!='none'" class="transparent-button-wrapper">
-        <button [routerLink]="['profile']" [queryParams]="{title: 'My profile'}" class="tranparentBtn" mat-flat-button >Profile</button>
-    </div> -->
     
     <div *ngIf="role=='admin'" class="transparent-button-wrapper">
         <button [routerLink]="['upload']" class="tranparentBtn" mat-flat-button >Upload</button>

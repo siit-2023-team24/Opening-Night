@@ -44,16 +44,6 @@ export class HomePageComponent implements OnInit{
       }
     });
 
-    // const filmDTO = {
-    //   id: 1,
-    //   title: 'fasdfasdfas',
-    //   isSeries: true,
-    //   series: 'Naruto',
-    //   season: 4,
-    //   episode: 1
-    // };
-
-    // this.films.push(filmDTO);
   }
 
   search(): void {

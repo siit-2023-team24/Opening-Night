@@ -4,24 +4,24 @@
         <div class="user-info">
             <div class="stars">
               <div class="star-container" (click)="rateStar(1)">
-                <mat-icon class="star" *ngIf = "!stars[0]">star_border</mat-icon>
-                <mat-icon class="star full" *ngIf = "stars[0]">star</mat-icon>
+                <mat-icon class="star" *ngIf = "!stars[0]">*</mat-icon>
+                <mat-icon class="star full" *ngIf = "stars[0]">*</mat-icon>
               </div>
               <div class="star-container" (click)="rateStar(2)">
-                <mat-icon class="star" *ngIf = "!stars[1]">star_border</mat-icon>
-                <mat-icon class="star full" *ngIf = "stars[1]">star</mat-icon>
+                <mat-icon class="star" *ngIf = "!stars[1]">*</mat-icon>
+                <mat-icon class="star full" *ngIf = "stars[1]">*</mat-icon>
               </div>
               <div class="star-container" (click)="rateStar(3)">
-                <mat-icon class="star" *ngIf = "!stars[2]">star_border</mat-icon>
-                <mat-icon class="star full" *ngIf = "stars[2]">star</mat-icon>
+                <mat-icon class="star" *ngIf = "!stars[2]">*</mat-icon>
+                <mat-icon class="star full" *ngIf = "stars[2]">*</mat-icon>
               </div>
               <div class="star-container" (click)="rateStar(4)">
-                <mat-icon class="star" *ngIf = "!stars[3]">star_border</mat-icon>
-                <mat-icon class="star full" *ngIf = "stars[3]">star</mat-icon>
+                <mat-icon class="star" *ngIf = "!stars[3]">*</mat-icon>
+                <mat-icon class="star full" *ngIf = "stars[3]">*</mat-icon>
               </div>
               <div class="star-container" (click)="rateStar(5)">
-                <mat-icon class="star" *ngIf = "!stars[4]">star_border</mat-icon>
-                <mat-icon class="star full" *ngIf = "stars[4]">star</mat-icon>
+                <mat-icon class="star" *ngIf = "!stars[4]">*</mat-icon>
+                <mat-icon class="star full" *ngIf = "stars[4]">*</mat-icon>
               </div>
               <div class="star-container">
                 <p class="rating" *ngIf="rating!=0">{{ rating }}</p>
@@ -53,7 +53,7 @@
                 </div>
                 <div class="stars">
                     <div class="star-container">
-                        <mat-icon class="star full">star</mat-icon>
+                        <mat-icon class="star full">*</mat-icon>
                     </div>
                     <div class="star-container">
                         <p class="rating">{{ r.stars }}</p>
