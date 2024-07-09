@@ -30,6 +30,7 @@ export class HomePageComponent implements OnInit{
   }
 
   ngOnInit(): void {
+    if(!this.authService.isLoggedIn()) this.router.navigate(['login']);
     this.fetchFilms();
   }
 

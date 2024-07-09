@@ -26,8 +26,6 @@ class OpeningNightStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        user_roles = ['admin', 'viewer']
-
         user_pool = cognito.UserPool(self, "Opening-Night-Pool",
             user_pool_name="opening-night-user-pool",
             self_sign_up_enabled=True,
@@ -58,19 +56,9 @@ class OpeningNightStack(Stack):
             generate_secret=False
         )
 
-        ssm.StringParameter(self, "UserPoolId",
-            parameter_name="pool_id",
-            string_value=user_pool.user_pool_id
-        )
-
-        ssm.StringParameter(self, "UserPoolClientId",
-            parameter_name="client_id",
-            string_value=user_pool_client.user_pool_client_id
-        )
-
         opening_nights_table= dynamodb.Table(
-            self, "Films-Table",
-            table_name="films-table",
+            self, "Opening-Night-Table",
+            table_name="opening-night-table",
             partition_key=dynamodb.Attribute(
                 name="filmId",
                 type=dynamodb.AttributeType.STRING
@@ -175,9 +163,9 @@ class OpeningNightStack(Stack):
                     "s3:GetObject",
                     "s3:GetObjectAcl",
                     "s3:DeleteObject",
-                    "ssm:GetParameter", # register, login
                     "cognito-idp:AdminConfirmSignUp", # register
                     "cognito-idp:ListUsers", # register
+                    "cognito-idp:AdminGetUser", # authorize
                     "sns:CreateTopic",
                     "sns:ListTopics",
                     "sns:Subscribe"
@@ -191,9 +179,8 @@ class OpeningNightStack(Stack):
                            downloads_log_table.table_arn,
                            feed_table.table_arn,
                            opening_nights_bucket.bucket_arn + "/*",
-                           "arn:aws:ssm:eu-central-1:339713060982:parameter/client_id", # register, login
-                           "arn:aws:ssm:eu-central-1:339713060982:parameter/pool_id", # login
-                           f"arn:aws:cognito-idp:eu-central-1:339713060982:userpool/{user_pool.user_pool_id}"] # register
+                           user_pool.user_pool_arn # register
+                           ]
             )
         )
 
@@ -225,7 +212,7 @@ class OpeningNightStack(Stack):
         )
 
 
-        def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var=''):
+        def create_lambda_function(id, handler, include_dir, method, layers, role=lambda_role, env_var='', is_viewer='false'):
             function = _lambda.Function(
                 self, id,
                 runtime=_lambda.Runtime.PYTHON_3_9,
@@ -237,7 +224,7 @@ class OpeningNightStack(Stack):
                         command=[
                             "bash", "-c",
                             "pip install --no-cache -r requirements.txt -t /asset-output && cp -r . /asset-output"
-                        ]
+                        ],
                     ),),
                 memory_size=128,
                 timeout=Duration.seconds(60),
@@ -249,7 +236,10 @@ class OpeningNightStack(Stack):
                     'FEED_TABLE_NAME': feed_table.table_name,
                     'SEARCH_TABLE_NAME': search_table.table_name,
                     'BUCKET_NAME': opening_nights_bucket.bucket_name,
-                    'CUSTOM_VAR': env_var
+                    'CUSTOM_VAR': env_var,
+                    'POOL_ID': user_pool.user_pool_id,
+                    'CLIENT_ID': user_pool_client.user_pool_client_id,
+                    'IS_VIEWER': is_viewer
                 },
                 role=role
             )
@@ -279,29 +269,35 @@ class OpeningNightStack(Stack):
         
         authorize_viewer_lambda = create_lambda_function(
             "authorizeViewer",
-            "authorize_viewer.authorize",
+            "authorize.authorize",
             "lambdas/authorization",
             "GET",
-            []
+            [],
+            is_viewer='true'
         )
 
         authorize_admin_lambda = create_lambda_function(
             "authorizeAdmin",
-            "authorize_admin.authorize",
+            "authorize.authorize",
             "lambdas/authorization",
             "GET",
             []
         )
 
-        # authorizer = apigateway.CognitoUserPoolsAuthorizer(self, "CognitoAuthorizer",
-        #     cognito_user_pools=[user_pool]
-        # )
+        authorize_user_lambda = create_lambda_function(
+            "authorizeUser",
+            "authorize.authorize",
+            "lambdas/authorization",
+            "GET",
+            [],
+            is_viewer='both'
+        )
 
-        # viewer_authorizer = apigateway.RequestAuthorizer(self, "ViewerAuthorizer",
-        #     handler = authorize_viewer_lambda,
-        #     identity_sources=[apigateway.IdentitySource.header("Authorization")],
-        #     results_cache_ttl=Duration.seconds(0)
-        # )
+        viewer_authorizer = apigateway.RequestAuthorizer(self, "ViewerAuthorizer",
+            handler = authorize_viewer_lambda,
+            identity_sources=[apigateway.IdentitySource.header("Authorization")],
+            results_cache_ttl=Duration.seconds(0)
+        )
 
         # admin_authorizer = apigateway.RequestAuthorizer(self, "AdminAuthorizer",
         #     handler = authorize_admin_lambda,
@@ -726,7 +722,7 @@ class OpeningNightStack(Stack):
         upload_film_integration = apigateway.LambdaIntegration(upload_film_lambda)
         films.add_method("POST", upload_film_integration)
         get_all_films_integration = apigateway.LambdaIntegration(get_all_films_lambda)
-        films.add_method("GET", get_all_films_integration)
+        films.add_method("GET", get_all_films_integration, authorizer=viewer_authorizer)
 
         film = opening_nights_api.root.add_resource("{name}")
         download_film_integration = apigateway.LambdaIntegration(download_film_lambda)
@@ -795,3 +791,4 @@ class OpeningNightStack(Stack):
         search_filter = opening_nights_api.root.add_resource("search-filter").add_resource("{input}")
         search_filter_integration = apigateway.LambdaIntegration(search_filter_lambda)
         search_filter.add_method("GET", search_filter_integration) 
+
