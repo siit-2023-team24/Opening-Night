@@ -14,6 +14,9 @@ def get_film(event, context):
     response = table.get_item(Key={'filmId': film_id})
     
     if 'Item' in response:
+        film = response['Item']
+        if 'season' in film: film['season'] = int(film['season'])
+        if 'episode' in film: film['episode'] = int(film['episode'])
         try:
             s3_response = s3_client.get_object(Bucket=bucket_name, Key=film_id)
             file_content_original = base64.b64encode(s3_response['Body'].read()).decode('utf-8')

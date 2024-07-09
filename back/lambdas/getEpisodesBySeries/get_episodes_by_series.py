@@ -18,7 +18,12 @@ def get_episodes_by_series(event, context):
     if 'Items' in response:
         for item in response['Items']:
             if 'isSeries' in item and item['isSeries']:
-                episodes.append(item)
+                episodes.append({
+                    'filmId': item['filmId'],
+                    'title': item['title'],
+                    'episode': int(item.get('episode', None)),
+                    'season': int(item.get('season', None))
+                })
 
     return {
         'statusCode': 200,

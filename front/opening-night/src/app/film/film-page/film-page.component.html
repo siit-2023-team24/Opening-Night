@@ -16,7 +16,7 @@
   </div>
 
   <!-- Video Player Section -->
-  <div class="video-container" *ngIf="!filmDTO.isSeries">
+  <div class="video-container">
     <video controls #videoPlayer>
       <source [src]="videoSource" type="video/mp4">
       Your browser does not support the video tag.
@@ -26,15 +26,13 @@
   <!-- Series Section -->
   <div *ngIf="filmDTO.isSeries">
     <h3>{{ filmDTO.series }} - Season {{ filmDTO.season }} Episode {{ filmDTO.episode }}</h3>
-    <video controls [src]="filmDTO.fileContentOriginal"></video>
-
     <!-- Episodes Grid -->
     <div class="episodes-grid">
       <div *ngFor="let season of seasons">
         <h4>Season {{ season }}</h4>
         <div *ngFor="let ep of episodes">
-          <div *ngIf="ep.seasonNumber === season">
-            <button color="episode" mat-raised-button (click)="loadEpisode(ep.filmId)">Episode {{ ep.episodeNumber }}</button>
+          <div *ngIf="ep.season === season">
+            <button color="episode" mat-raised-button (click)="loadEpisode(ep.filmId)">Episode {{ ep.episode }}</button>
           </div>
         </div>
       </div>
@@ -47,5 +45,3 @@
     <button mat-raised-button color="primary" [routerLink]="'/update/' + filmDTO.filmId">Update</button>
     <button mat-raised-button color="warn">Delete</button>
   </div>
-
-</div>

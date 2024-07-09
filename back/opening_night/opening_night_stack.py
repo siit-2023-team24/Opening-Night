@@ -392,7 +392,7 @@ class OpeningNightStack(Stack):
 
         get_episodes_by_series_lambda = create_lambda_function(
             "getEpisodesBySeries",
-            "get_episodes_by_series.get",
+            "get_episodes_by_series.get_episodes_by_series",
             "lambdas/getEpisodesBySeries",
             "GET",
             []
@@ -746,7 +746,7 @@ class OpeningNightStack(Stack):
 
         film_update = opening_nights_api.root.add_resource('update').add_resource("{id}")
         get_film_by_id_update_integration = apigateway.LambdaIntegration(get_film_by_id_update_lambda)
-        film_update.add_method("GET", get_film_by_id_update_integration)
+        film_update.add_method("GET", get_film_by_id_update_integration, authorizer=admin_authorizer)
 
         update_film_integration = apigateway.LambdaIntegration(update_film_lambda)
         films.add_method("PUT", update_film_integration, authorizer=admin_authorizer)

@@ -43,7 +43,7 @@ export class FilmService {
   }
 
   getEpisodesBySeries(seriesName: string | undefined): Observable<SeriesEpisodeDTO[]> {
-    return this.http.get<SeriesEpisodeDTO[]>(environment.apiHost + '/series/' + seriesName + '/episodes')
+    return this.http.get<SeriesEpisodeDTO[]>(environment.apiHost + '/films/series/' + seriesName + '/episodes')
   }
 
   getAllFilms(): Observable<FilmCardDTO[]> {

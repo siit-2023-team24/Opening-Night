@@ -63,16 +63,17 @@ export class FilmPageComponent {
   getSeriesEpisodes() {
     this.filmService.getEpisodesBySeries(this.filmDTO.series).subscribe(response => {
       this.episodes = response;
+      this.episodes.forEach(ep => {
+        if(!this.seasons.includes(ep.season))
+          this.seasons.push(ep.season);
+      });
+  
+      console.log(this.seasons)
+      this.seasons.sort((a, b) => a - b);
     }, error => {
       console.log('Error fetching film data', error);
     });
 
-    this.episodes.forEach(ep => {
-      if(!this.seasons.includes(ep.seasonNumber))
-        this.seasons.push(ep.seasonNumber);
-    });
-
-    this.seasons.sort((a, b) => a - b);
   }
 
   loadEpisode(id: string): void {
